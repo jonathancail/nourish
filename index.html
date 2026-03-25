@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NOURISH — Food & Fitness Diary</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0c0c0f;--surface:#141418;--surface2:#1c1c22;--surface3:#242430;
+  --border:#2a2a36;--accent:#b5ff5a;--accent2:#5af0ff;--accent3:#ff6b6b;--accent4:#ffb84d;
+  --text:#e8e8f0;--muted:#6b6b80;--muted2:#9090a8;
+  --font-display:'Syne',sans-serif;--font-mono:'DM Mono',monospace;--radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:.3;}
+
+/* ── FIREBASE SETUP SCREEN ── */
+#fbSetupScreen{display:none;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;}
+#fbSetupScreen.show{display:flex;}
+.setup-card{width:600px;max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;}
+.setup-logo{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--accent);letter-spacing:.15em;margin-bottom:4px;}
+.setup-sub{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:28px;}
+.setup-step{display:flex;gap:16px;margin-bottom:18px;padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0;font-family:var(--font-display);}
+.step-title{font-size:12px;font-weight:600;margin-bottom:3px;font-family:var(--font-display);}
+.step-desc{font-size:11px;color:var(--muted2);line-height:1.7;}
+.step-desc a{color:var(--accent2);text-decoration:none;}
+.step-desc a:hover{text-decoration:underline;}
+.step-desc code{background:var(--surface3);padding:1px 5px;border-radius:4px;font-size:10px;color:var(--accent);}
+.config-area{width:100%;min-height:120px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:11px;outline:none;resize:vertical;transition:border-color .15s;margin:10px 0;}
+.config-area:focus{border-color:var(--accent);}
+.config-area::placeholder{color:var(--muted);}
+.config-error{font-size:10px;color:var(--accent3);margin-top:4px;display:none;}
+.btn-enter{width:100%;padding:13px;background:var(--accent);color:#0c0c0f;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;font-family:var(--font-display);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;margin-top:8px;}
+.btn-enter:hover{background:#ccff77;transform:translateY(-1px);}
+.btn-enter:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.skip-link{text-align:center;margin-top:10px;font-size:10px;color:var(--muted);cursor:pointer;}
+.skip-link:hover{color:var(--muted2);}
+
+/* ── USDA SETUP SCREEN ── */
+#usdaSetupScreen{display:none;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;}
+#usdaSetupScreen.show{display:flex;}
+.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .2s;margin:14px 0;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(181,255,90,.04);}
+.drop-icon{font-size:28px;margin-bottom:6px;}
+.drop-label{font-size:12px;color:var(--muted2);line-height:1.6;}
+.drop-label strong{color:var(--text);}
+#fileInput{display:none;}
+.progress-wrap{display:none;margin-top:10px;}
+.progress-bar{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-bottom:6px;}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .15s;}
+.progress-label{font-size:10px;color:var(--muted);text-align:center;letter-spacing:.06em;}
+.db-status{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:8px;background:var(--surface3);margin-bottom:18px;font-size:11px;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.status-dot.green{background:var(--accent);}
+.status-dot.amber{background:var(--accent4);}
+.status-dot.pulse{animation:pulse 1.5s ease infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* ── AUTH SCREEN ── */
+#authScreen{display:none;align-items:center;justify-content:center;min-height:100vh;}
+#authScreen.show{display:flex;}
+.auth-card{width:380px;max-width:95vw;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;text-align:center;}
+.auth-logo{font-family:var(--font-display);font-size:32px;font-weight:800;color:var(--accent);letter-spacing:.15em;margin-bottom:6px;}
+.auth-sub{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:32px;}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:13px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:12px;cursor:pointer;transition:all .2s;margin-bottom:12px;}
+.btn-google:hover{border-color:var(--accent2);background:var(--surface3);}
+.google-icon{width:18px;height:18px;flex-shrink:0;}
+.auth-note{font-size:10px;color:var(--muted);line-height:1.6;margin-top:16px;}
+.auth-error{font-size:11px;color:var(--accent3);margin-top:10px;display:none;}
+.auth-loading{font-size:11px;color:var(--muted);margin-top:10px;display:none;}
+
+/* ── MAIN APP ── */
+#app{display:none;flex-direction:column;height:100vh;}
+#app.show{display:flex;}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(12,12,15,.92);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;flex-shrink:0;gap:12px;}
+.logo{font-family:var(--font-display);font-size:19px;font-weight:800;letter-spacing:.15em;color:var(--accent);white-space:nowrap;}
+.logo span{color:var(--muted);font-weight:400;}
+.header-center{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;}
+.header-date{font-size:11px;color:var(--muted2);letter-spacing:.06em;white-space:nowrap;}
+.header-sub{font-size:9px;color:var(--muted);margin-top:1px;cursor:pointer;white-space:nowrap;}
+.header-sub:hover{color:var(--accent2);}
+.header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s;flex-shrink:0;}
+.sync-dot.synced{background:var(--accent);}
+.sync-dot.syncing{background:var(--accent4);animation:pulse 1s ease infinite;}
+.sync-dot.error{background:var(--accent3);}
+.nav-tabs{display:flex;gap:3px;background:var(--surface2);border-radius:10px;padding:3px;}
+.nav-tab{padding:5px 12px;border-radius:7px;border:none;background:none;color:var(--muted);cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;transition:all .2s;white-space:nowrap;}
+.nav-tab.active{background:var(--surface3);color:var(--text);}
+.nav-tab:hover:not(.active){color:var(--text);}
+.user-btn{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer;transition:all .15s;font-size:10px;font-family:var(--font-mono);color:var(--muted2);}
+.user-btn:hover{border-color:var(--muted);color:var(--text);}
+.user-avatar{width:20px;height:20px;border-radius:50%;object-fit:cover;}
+.app-body{display:flex;flex:1;overflow:hidden;}
+.sidebar{width:272px;min-width:272px;border-right:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.main{flex:1;padding:22px 26px;overflow-y:auto;}
+
+/* ── SIDEBAR ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+.card-title{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;}
+.ring-wrap{position:relative;width:108px;height:108px;margin:0 auto 10px;}
+.ring-svg{width:108px;height:108px;transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:var(--surface3);stroke-width:9;}
+.ring-fill{fill:none;stroke:var(--accent);stroke-width:9;stroke-linecap:round;stroke-dasharray:295;stroke-dashoffset:295;transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1);}
+.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.ring-cal{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--accent);line-height:1;}
+.ring-sub{font-size:8px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+.macro-row{display:flex;gap:5px;margin-top:10px;}
+.macro-pill{flex:1;background:var(--surface2);border-radius:8px;padding:6px 3px;text-align:center;}
+.macro-val{font-size:12px;font-weight:500;}
+.macro-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;}
+.net-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;}
+.net-row .lbl{color:var(--muted2);}
+.net-divider{border:none;border-top:1px solid var(--border);margin:6px 0;}
+.net-big{font-family:var(--font-display);font-size:19px;font-weight:700;}
+.net-big.ok{color:var(--accent);}
+.net-big.over{color:var(--accent3);}
+.goal-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px;color:var(--accent);font-family:var(--font-display);font-size:21px;font-weight:700;text-align:center;outline:none;transition:border-color .15s;}
+.goal-input:focus{border-color:var(--accent);}
+.goal-unit{font-size:9px;color:var(--muted);text-align:center;margin-top:3px;letter-spacing:.1em;text-transform:uppercase;}
+
+/* ── MAIN ── */
+.page{display:none;}
+.page.active{display:block;}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-family:var(--font-display);font-size:15px;font-weight:700;}
+.badge{font-size:9px;background:var(--surface3);border-radius:20px;padding:3px 9px;color:var(--muted2);}
+.btn-add{display:flex;align-items:center;gap:5px;background:var(--accent);color:#0c0c0f;border:none;border-radius:8px;padding:5px 11px;font-size:10px;font-weight:700;font-family:var(--font-mono);letter-spacing:.07em;cursor:pointer;transition:all .15s;text-transform:uppercase;white-space:nowrap;}
+.btn-add:hover{background:#ccff77;transform:translateY(-1px);}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted2);border-radius:8px;padding:5px 11px;font-size:10px;font-family:var(--font-mono);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-ghost:hover{border-color:var(--muted);color:var(--text);}
+.btn-danger{background:none;border:1px solid var(--accent3);color:var(--accent3);border-radius:8px;padding:5px 11px;font-size:10px;font-family:var(--font-mono);cursor:pointer;transition:all .15s;}
+.btn-danger:hover{background:var(--accent3);color:#0c0c0f;}
+.meal-section{margin-bottom:22px;}
+.meal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.meal-label{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.meal-label::after{content:'';display:inline-block;width:36px;height:1px;background:var(--border);}
+.meal-kcal{font-size:10px;color:var(--muted2);}
+.food-item{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:5px;transition:border-color .15s;}
+.food-item:hover{border-color:var(--surface3);}
+.food-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+.food-info{flex:1;min-width:0;}
+.food-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.food-meta{font-size:9px;color:var(--muted);margin-top:1px;}
+.food-kcal{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 3px;transition:color .15s;line-height:1;flex-shrink:0;}
+.del-btn:hover{color:var(--accent3);}
+.empty-slot{border:1px dashed var(--border);border-radius:10px;padding:14px;text-align:center;font-size:10px;color:var(--muted);letter-spacing:.06em;}
+.ex-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:5px;}
+.ex-icon{font-size:17px;width:26px;text-align:center;}
+.ex-info{flex:1;}
+.ex-name{font-size:12px;font-weight:500;}
+.ex-meta{font-size:9px;color:var(--muted);margin-top:1px;}
+.ex-burn{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--accent2);white-space:nowrap;}
+.steps-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:18px;}
+.steps-big{font-family:var(--font-display);font-size:34px;font-weight:800;color:var(--accent2);line-height:1;}
+.steps-bar{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin:7px 0 3px;}
+.steps-fill{height:100%;background:var(--accent2);border-radius:3px;transition:width .6s ease;}
+
+/* ── HISTORY ── */
+.hist-day{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:9px;overflow:hidden;}
+.hist-day-hdr{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;cursor:pointer;transition:background .15s;user-select:none;}
+.hist-day-hdr:hover{background:var(--surface2);}
+.hist-day-hdr.expanded{border-bottom:1px solid var(--border);}
+.hist-date{font-family:var(--font-display);font-size:13px;font-weight:700;}
+.hist-day-meta{font-size:9px;color:var(--muted);margin-top:2px;}
+.hist-stats{display:flex;gap:12px;align-items:center;}
+.hist-stat{text-align:right;}
+.hist-stat-val{font-size:12px;font-weight:600;}
+.hist-stat-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
+.hist-chevron{font-size:10px;color:var(--muted);transition:transform .2s;margin-left:6px;}
+.hist-chevron.open{transform:rotate(180deg);}
+.hist-bar-wrap{padding:0 15px 11px;}
+.hist-bar{height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-bottom:3px;}
+.hist-fill{height:100%;background:var(--accent);border-radius:2px;}
+.hist-pct{font-size:9px;color:var(--muted);text-align:right;}
+.hist-body{display:none;padding:14px;border-top:1px solid var(--border);}
+.hist-body.open{display:block;}
+.hist-section-title{font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin:14px 0 7px;display:flex;align-items:center;gap:8px;}
+.hist-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.hist-section-title:first-child{margin-top:0;}
+.hist-actions{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap;padding-top:13px;border-top:1px solid var(--border);}
+.hist-steps-row{display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:8px;padding:9px 11px;}
+.hist-steps-val{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--accent2);}
+.hist-steps-inp{background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:4px 7px;color:var(--accent2);font-family:var(--font-display);font-size:15px;font-weight:700;width:100px;outline:none;text-align:center;}
+.hist-steps-inp:focus{border-color:var(--accent2);}
+
+/* ── SYNC BANNER ── */
+.sync-banner{display:none;align-items:center;gap:12px;padding:11px 16px;background:rgba(90,240,255,.07);border-bottom:1px solid rgba(90,240,255,.2);font-size:11px;color:var(--accent2);}
+.sync-banner.show{display:flex;}
+.sync-banner-icon{font-size:16px;}
+
+/* ── MIGRATION BANNER ── */
+.migrate-banner{display:none;background:linear-gradient(135deg,rgba(90,240,255,.07),rgba(181,255,90,.05));border:1px solid var(--accent2);border-radius:var(--radius);padding:13px 16px;margin-bottom:18px;}
+.migrate-banner.show{display:flex;align-items:center;gap:12px;}
+.migrate-icon{font-size:20px;flex-shrink:0;}
+.migrate-text{flex:1;font-size:11px;line-height:1.5;}
+.migrate-text strong{color:var(--accent2);font-family:var(--font-display);}
+.migrate-actions{display:flex;gap:7px;flex-shrink:0;}
+.btn-migrate{background:var(--accent2);color:#0c0c0f;border:none;border-radius:8px;padding:6px 12px;font-size:10px;font-weight:700;font-family:var(--font-mono);letter-spacing:.06em;cursor:pointer;transition:all .15s;text-transform:uppercase;}
+.btn-migrate:hover{background:#8af7ff;}
+.btn-dismiss{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 10px;font-size:10px;font-family:var(--font-mono);cursor:pointer;transition:all .15s;}
+.btn-dismiss:hover{border-color:var(--muted);color:var(--text);}
+.migrate-preview{background:var(--surface2);border-radius:8px;padding:10px 12px;margin:10px 0;max-height:180px;overflow-y:auto;font-size:11px;}
+.migrate-day-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
+.migrate-day-row:last-child{border-bottom:none;}
+.migrate-day-date{color:var(--muted2);font-size:10px;}
+.migrate-day-stats{display:flex;gap:10px;align-items:center;}
+.migrate-day-stat{font-size:9px;color:var(--muted);}
+.migrate-day-stat span{color:var(--text);}
+
+/* ── MODALS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;width:460px;max-width:100%;max-height:85vh;overflow-y:auto;animation:mIn .2s ease;}
+@keyframes mIn{from{opacity:0;transform:scale(.95) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.modal-title{font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:16px;}
+.tab-bar{display:flex;gap:3px;background:var(--surface2);border-radius:8px;padding:3px;margin-bottom:14px;}
+.tab-btn{flex:1;padding:5px;text-align:center;border-radius:6px;border:none;background:none;color:var(--muted);font-family:var(--font-mono);font-size:10px;cursor:pointer;transition:all .15s;letter-spacing:.04em;}
+.tab-btn.active{background:var(--surface3);color:var(--text);}
+.pane{display:none;}
+.pane.active{display:block;}
+.lbl{display:block;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
+.inp{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none;transition:border-color .15s;}
+.inp:focus{border-color:var(--accent);}
+.inp::placeholder{color:var(--muted);}
+select.inp option{background:var(--surface2);}
+.fg{margin-bottom:11px;}
+.row{display:flex;gap:9px;}
+.row .fg{flex:1;}
+.search-box{position:relative;}
+.search-results{background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:3px;max-height:190px;overflow-y:auto;display:none;position:absolute;width:100%;z-index:10;}
+.sr-item{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;font-size:11px;}
+.sr-item:last-child{border-bottom:none;}
+.sr-item:hover{background:var(--surface3);}
+.sr-name{font-weight:500;margin-bottom:1px;}
+.sr-meta{font-size:9px;color:var(--muted);}
+.sr-none{padding:11px;text-align:center;color:var(--muted);font-size:10px;}
+.preview-box{background:var(--surface3);border-radius:8px;padding:11px;text-align:center;margin-top:9px;display:none;}
+.preview-num{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--accent);}
+.preview-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
+.preview-macros{font-size:9px;color:var(--muted2);margin-top:3px;}
+.mfooter{display:flex;gap:7px;justify-content:flex-end;margin-top:16px;}
+.btn-primary{background:var(--accent);color:#0c0c0f;border:none;border-radius:8px;padding:8px 16px;font-size:11px;font-weight:700;font-family:var(--font-mono);letter-spacing:.07em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+.btn-primary:hover{background:#ccff77;}
+.btn-cancel{background:none;border:1px solid var(--border);color:var(--muted2);border-radius:8px;padding:8px 16px;font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all .15s;}
+.btn-cancel:hover{border-color:var(--muted);color:var(--text);}
+.ingr-row{display:flex;gap:7px;align-items:center;margin-bottom:7px;}
+.ingr-row .inp{font-size:11px;}
+.burn-preview{background:var(--surface3);border-radius:8px;padding:11px;text-align:center;margin-top:9px;}
+.burn-num{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--accent2);}
+.burn-note{font-size:9px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.recent-grid{display:flex;flex-direction:column;gap:4px;max-height:230px;overflow-y:auto;}
+.recent-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 9px;cursor:pointer;transition:border-color .15s;}
+.recent-item:hover{border-color:var(--accent2);}
+.recent-dot{width:5px;height:5px;border-radius:50%;background:var(--accent4);flex-shrink:0;}
+.recent-name{font-size:11px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;}
+.recent-sub{font-size:9px;color:var(--muted);}
+.recent-kcal{font-size:11px;color:var(--accent);font-family:var(--font-display);font-weight:700;white-space:nowrap;}
+.recent-add{background:var(--accent);border:none;color:#0c0c0f;cursor:pointer;font-size:13px;font-weight:700;line-height:1;padding:2px 6px;border-radius:5px;flex-shrink:0;transition:background .15s;}
+.recent-add:hover{background:#ccff77;}
+.recent-empty{font-size:10px;color:var(--muted);font-style:italic;padding:8px 0;text-align:center;}
+.recent-hint{font-size:9px;color:var(--muted);margin-top:9px;line-height:1.6;}
+
+/* toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:11px;z-index:400;transform:translateY(50px);opacity:0;transition:all .25s ease;pointer-events:none;max-width:280px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{border-color:var(--accent);color:var(--accent);}
+.toast.err{border-color:var(--accent3);color:var(--accent3);}
+.toast.info{border-color:var(--accent2);color:var(--accent2);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ FIREBASE CONFIG SCREEN ══════════ -->
+<div id="fbSetupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">NOURISH</div>
+    <div class="setup-sub">Step 1 of 2 — Firebase Setup</div>
+
+    <div class="setup-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Create a free Firebase project</div>
+        <div class="step-desc">Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → <strong>Add project</strong> → give it a name → disable Google Analytics (optional) → Create project.</div>
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Enable Google Sign-In</div>
+        <div class="step-desc">In your project: <strong>Authentication → Get started → Sign-in method → Google → Enable → Save</strong>. Add your email as a test user under <strong>Authentication → Users</strong> if prompted.</div>
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Create Firestore database</div>
+        <div class="step-desc"><strong>Firestore Database → Create database → Start in test mode → Next → Enable</strong>. Test mode gives you 30 days of open access — you can tighten rules later.</div>
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Register a Web app &amp; paste the config</div>
+        <div class="step-desc"><strong>Project settings (⚙) → Your apps → Add app → Web (&lt;/&gt;)</strong> → give it a nickname → Register. Copy the <code>firebaseConfig</code> object and paste it below.</div>
+      </div>
+    </div>
+
+    <textarea class="config-area" id="fbConfigInput" placeholder='Paste your firebaseConfig here, e.g.:
+
+{
+  apiKey: "AIza...",
+  authDomain: "my-project.firebaseapp.com",
+  projectId: "my-project",
+  storageBucket: "my-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123"
+}'></textarea>
+    <div class="config-error" id="fbConfigError"></div>
+
+    <button class="btn-enter" id="fbSaveBtn" onclick="saveFbConfig()">Save Config &amp; Continue →</button>
+    <div class="skip-link" onclick="skipFbSetup()">Skip Firebase — use local storage only (no sync)</div>
+  </div>
+</div>
+
+<!-- ══════════ USDA SETUP SCREEN ══════════ -->
+<div id="usdaSetupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">NOURISH</div>
+    <div class="setup-sub">Step 2 of 2 — Food Database</div>
+    <div class="db-status" id="dbStatus">
+      <div class="status-dot pulse" id="statusDot"></div>
+      <span id="statusText">Checking local database…</span>
+    </div>
+    <div id="importSection">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Download USDA SR Legacy dataset</div>
+          <div class="step-desc">Go to <a href="https://fdc.nal.usda.gov/download-datasets.html" target="_blank">fdc.nal.usda.gov/download-datasets.html</a> → download <strong>SR Legacy</strong> → unzip → you need <strong>food.csv</strong> and <strong>food_nutrient.csv</strong>.</div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Drop both files below</div>
+          <div class="step-desc">Stored in your browser's IndexedDB — stays on this device only. Do this on each device you use. Re-import quarterly when USDA releases updates.</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="drop-icon">📂</div>
+        <div class="drop-label"><strong>Click or drag &amp; drop</strong> food.csv + food_nutrient.csv</div>
+        <input type="file" id="fileInput" multiple accept=".csv"/>
+      </div>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-label" id="progressLabel">Preparing…</div>
+      </div>
+    </div>
+    <button class="btn-enter" id="usdaEnterBtn" onclick="enterFromUsda()">Enter NOURISH →</button>
+    <div class="skip-link" onclick="enterFromUsda()">Skip — use manual food entry only</div>
+  </div>
+</div>
+
+<!-- ══════════ AUTH SCREEN ══════════ -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">NOURISH</div>
+    <div class="auth-sub">Sign in to sync your diary</div>
+    <button class="btn-google" id="googleSignInBtn" onclick="signInGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-loading" id="authLoading">Signing in…</div>
+    <div class="auth-note">Your diary data is stored in your personal Firestore database.<br/>No one else can access it.</div>
+  </div>
+</div>
+
+<!-- ══════════ MAIN APP ══════════ -->
+<div id="app">
+  <!-- sync status bar -->
+  <div class="sync-banner" id="syncBanner">
+    <div class="sync-banner-icon">🔄</div>
+    <span id="syncBannerText">Syncing…</span>
+  </div>
+
+  <header>
+    <div class="logo">NOURISH <span>/ diary</span></div>
+    <div class="header-center">
+      <div class="header-date" id="headerDate"></div>
+      <div class="header-sub" id="dbInfo" onclick="goToUsdaSetup()"></div>
+    </div>
+    <div class="header-right">
+      <div class="sync-dot" id="syncDot" title="Sync status"></div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showPage('today',this)">Today</button>
+        <button class="nav-tab" onclick="showPage('exercise',this)">Exercise</button>
+        <button class="nav-tab" onclick="showPage('history',this)">History</button>
+      </div>
+      <div class="user-btn" id="userBtn" onclick="showUserMenu()">
+        <img class="user-avatar" id="userAvatar" src="" alt="" style="display:none"/>
+        <span id="userName">Account</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="sidebar">
+      <div class="card" style="text-align:center;">
+        <div class="ring-wrap">
+          <svg class="ring-svg" viewBox="0 0 108 108">
+            <circle class="ring-bg" cx="54" cy="54" r="47"/>
+            <circle class="ring-fill" id="ringFill" cx="54" cy="54" r="47"/>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-cal" id="ringCal">0</div>
+            <div class="ring-sub">kcal</div>
+          </div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:8px;">Goal <span id="goalSpan" style="color:var(--text)">2000</span> · <span id="remainSpan" style="color:var(--accent)">2000 left</span></div>
+        <div class="macro-row">
+          <div class="macro-pill"><div class="macro-val" id="mp" style="color:var(--accent)">0g</div><div class="macro-lbl">Protein</div></div>
+          <div class="macro-pill"><div class="macro-val" id="mc" style="color:var(--accent2)">0g</div><div class="macro-lbl">Carbs</div></div>
+          <div class="macro-pill"><div class="macro-val" id="mf" style="color:var(--accent3)">0g</div><div class="macro-lbl">Fat</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Net Calories</div>
+        <div class="net-row"><span class="lbl">Eaten</span><span id="netEaten">0</span></div>
+        <div class="net-row"><span class="lbl">Exercise</span><span style="color:var(--accent2)" id="netEx">−0</span></div>
+        <div class="net-row"><span class="lbl">Steps</span><span style="color:var(--accent2)" id="netSteps">−0</span></div>
+        <hr class="net-divider"/>
+        <div class="net-row"><span style="font-weight:600;color:var(--text);font-size:11px;">Net</span><span class="net-big ok" id="netTotal">0</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Daily Goal</div>
+        <input type="number" class="goal-input" id="goalInput" value="2000" min="500" max="9999"/>
+        <div class="goal-unit">kcal / day</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- TODAY -->
+      <div class="page active" id="page-today">
+        <!-- Import from JSON file (always visible) -->
+        <div style="margin-bottom:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">Import previous diary data</div>
+          </div>
+          <div id="jsonDropZone" onclick="document.getElementById('jsonFileInput').click()"
+            style="border:2px dashed var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:all .2s;font-size:11px;color:var(--muted2);">
+            <div style="font-size:20px;margin-bottom:4px;">📂</div>
+            <strong style="color:var(--text)">Click or drag &amp; drop</strong> your <code style="background:var(--surface3);padding:1px 5px;border-radius:4px;font-size:10px;color:var(--accent4);">nourish-export.json</code> file here
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;">Export it from the old version: open the old HTML → F12 Console → type <code style="background:var(--surface3);padding:1px 4px;border-radius:3px;font-size:9px;color:var(--accent)">copy(localStorage.getItem('nourish3'))</code> → paste into a .json file</div>
+            <input type="file" id="jsonFileInput" accept=".json,application/json" style="display:none"/>
+          </div>
+        </div>
+        <!-- Auto-detected localStorage migration banner -->
+        <div class="migrate-banner" id="migrateBanner">
+          <div class="migrate-icon">📦</div>
+          <div class="migrate-text"><strong>Previous diary data found in this browser</strong><br/>Entries from nourish3 are ready to import.</div>
+          <div class="migrate-actions">
+            <button class="btn-migrate" onclick="openMigrateModal(null)">Review &amp; Import</button>
+            <button class="btn-dismiss" onclick="dismissMigrate()">Dismiss</button>
+          </div>
+        </div>
+        <div id="mealArea"></div>
+      </div>
+
+      <!-- EXERCISE -->
+      <div class="page" id="page-exercise">
+        <div class="steps-card">
+          <div class="section-hdr" style="margin-bottom:10px;">
+            <div class="section-title">Step Counter</div>
+            <button class="btn-ghost" onclick="openStepsModal(null)">Update</button>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:14px;">
+            <div><div class="steps-big" id="stepsNum">0</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">steps</div></div>
+            <div style="flex:1;">
+              <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:2px;">
+                <span id="stepsBurn" style="color:var(--accent2)">≈ 0 kcal</span><span id="stepsGoalLbl">/ 10,000</span>
+              </div>
+              <div class="steps-bar"><div class="steps-fill" id="stepsFill" style="width:0%"></div></div>
+              <div style="font-size:9px;color:var(--muted);text-align:right;" id="stepsPct">0%</div>
+            </div>
+          </div>
+        </div>
+        <div class="section-hdr">
+          <div class="section-title">Workouts</div>
+          <button class="btn-add" onclick="openExModal(null)">+ Log Exercise</button>
+        </div>
+        <div id="exList"><div class="empty-slot">No workouts logged yet</div></div>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="page" id="page-history">
+        <div class="section-hdr">
+          <div class="section-title">History</div>
+          <span class="badge" id="histBadge">0 days</span>
+        </div>
+        <div id="histList"><div class="empty-slot">Start logging to see history here</div></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ══ FOOD MODAL ══ -->
+<div class="overlay" id="foodOverlay">
+  <div class="modal">
+    <div class="modal-title" id="foodModalTitle">Add Food</div>
+    <div class="tab-bar">
+      <button class="tab-btn" id="tabRecent" onclick="switchFoodTab('recent',this)">⏱ Recent</button>
+      <button class="tab-btn active" id="tabSearch" onclick="switchFoodTab('search',this)">Search DB</button>
+      <button class="tab-btn" id="tabManual" onclick="switchFoodTab('manual',this)">Manual</button>
+      <button class="tab-btn" id="tabRecipe" onclick="switchFoodTab('recipe',this)">Recipe</button>
+    </div>
+    <div class="pane" id="fp-recent">
+      <div class="recent-grid" id="recentGrid"></div>
+      <div class="recent-hint">Tap <strong style="color:var(--accent)">+</strong> to instantly re-log, or click a food to edit it first.</div>
+    </div>
+    <div class="pane active" id="fp-search">
+      <div class="fg"><label class="lbl">Search food name</label>
+        <div class="search-box">
+          <input type="text" class="inp" id="fsInput" placeholder="e.g. chicken breast, oats…" oninput="debouncedSearch()" autocomplete="off"/>
+          <div class="search-results" id="fsResults"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="fg"><label class="lbl">Quantity</label><input type="number" class="inp" id="fsQty" value="100" min="1" oninput="updatePreview()"/></div>
+        <div class="fg"><label class="lbl">Unit</label>
+          <select class="inp" id="fsUnit" onchange="updatePreview()">
+            <option value="g">grams</option><option value="oz">ounces</option><option value="serving">serving (100g)</option>
+          </select>
+        </div>
+      </div>
+      <div class="preview-box" id="fsPreview">
+        <div class="preview-num" id="fsPreviewKcal">0</div><div class="preview-lbl">kcal</div>
+        <div class="preview-macros" id="fsPreviewMacros"></div>
+      </div>
+    </div>
+    <div class="pane" id="fp-manual">
+      <div class="fg"><label class="lbl">Food Name</label><input type="text" class="inp" id="mName" placeholder="e.g. Homemade lasagne"/></div>
+      <div class="row">
+        <div class="fg"><label class="lbl">Qty</label><input type="number" class="inp" id="mQty" value="1" min="0.1" step="0.1"/></div>
+        <div class="fg"><label class="lbl">Unit</label>
+          <select class="inp" id="mUnit"><option>serving</option><option>g</option><option>oz</option><option>ml</option><option>cup</option><option>tbsp</option></select>
+        </div>
+      </div>
+      <div class="fg"><label class="lbl">Calories (kcal)</label><input type="number" class="inp" id="mKcal" placeholder="e.g. 450" min="0"/></div>
+      <div class="row">
+        <div class="fg"><label class="lbl">Protein (g)</label><input type="number" class="inp" id="mP" placeholder="0" min="0"/></div>
+        <div class="fg"><label class="lbl">Carbs (g)</label><input type="number" class="inp" id="mC" placeholder="0" min="0"/></div>
+        <div class="fg"><label class="lbl">Fat (g)</label><input type="number" class="inp" id="mF" placeholder="0" min="0"/></div>
+      </div>
+    </div>
+    <div class="pane" id="fp-recipe">
+      <div class="fg"><label class="lbl">Recipe / Meal Name</label><input type="text" class="inp" id="rName" placeholder="e.g. My Chicken Stir Fry"/></div>
+      <div style="font-size:10px;color:var(--muted2);margin-bottom:9px;line-height:1.6;">Add ingredients — calories are summed automatically.</div>
+      <div id="ingrList"></div>
+      <button class="btn-ghost" style="width:100%;font-size:10px;margin-bottom:9px;" onclick="addIngr()">+ Add Ingredient</button>
+      <div class="preview-box" style="display:block;"><div class="preview-num" id="rTotal" style="color:var(--accent)">0</div><div class="preview-lbl">total kcal</div></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn-cancel" onclick="closeFoodModal()">Cancel</button>
+      <button class="btn-primary" onclick="logFood()">Log Food</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EXERCISE MODAL ══ -->
+<div class="overlay" id="exOverlay">
+  <div class="modal">
+    <div class="modal-title">Log Exercise</div>
+    <div class="fg"><label class="lbl">Activity</label>
+      <select class="inp" id="exAct" onchange="onExActChange()">
+        <option value="10">Running — fast (10 MET)</option><option value="8">Running — moderate (8 MET)</option>
+        <option value="6">Cycling — vigorous (6 MET)</option><option value="4.5">Cycling — moderate (4.5 MET)</option>
+        <option value="8.0">Swimming — freestyle (8 MET)</option><option value="3.5">Walking — brisk (3.5 MET)</option>
+        <option value="3">Walking — easy (3 MET)</option><option value="5">Weight Training (5 MET)</option>
+        <option value="9">HIIT (9 MET)</option><option value="2.5">Yoga (2.5 MET)</option>
+        <option value="3.0">Pilates (3 MET)</option><option value="7">Rowing — vigorous (7 MET)</option>
+        <option value="10.0">Jump Rope (10 MET)</option><option value="5.0">Elliptical (5 MET)</option>
+        <option value="custom">Custom…</option>
+      </select>
+    </div>
+    <div class="fg" id="customNameFg" style="display:none;"><label class="lbl">Activity name</label><input type="text" class="inp" id="exCustomName" placeholder="e.g. Paddle tennis"/></div>
+    <div class="fg" id="customMetFg" style="display:none;"><label class="lbl">MET value</label><input type="number" class="inp" id="exCustomMet" value="5" min="1" max="20" step="0.5" oninput="calcBurn()"/></div>
+    <div class="row">
+      <div class="fg"><label class="lbl">Duration (min)</label><input type="number" class="inp" id="exDur" value="30" min="1" oninput="calcBurn()"/></div>
+      <div class="fg"><label class="lbl">Body weight (kg)</label><input type="number" class="inp" id="exWt" value="70" min="30" oninput="calcBurn()"/></div>
+    </div>
+    <div class="burn-preview">
+      <div class="burn-num" id="burnNum">175</div>
+      <div class="preview-lbl" style="color:var(--muted);margin-top:3px;">estimated kcal burned</div>
+      <div class="burn-note">MET × weight (kg) × hours · Individual results vary</div>
+    </div>
+    <div class="mfooter"><button class="btn-cancel" onclick="closeExModal()">Cancel</button><button class="btn-primary" onclick="logExercise()">Log Exercise</button></div>
+  </div>
+</div>
+
+<!-- ══ STEPS MODAL ══ -->
+<div class="overlay" id="stepsOverlay">
+  <div class="modal" style="width:330px;">
+    <div class="modal-title">Update Steps</div>
+    <div class="fg"><label class="lbl">Steps today</label><input type="number" class="inp" id="stepsIn" placeholder="e.g. 8500" min="0" style="font-size:21px;font-family:var(--font-display);font-weight:700;text-align:center;color:var(--accent2);"/></div>
+    <div class="fg"><label class="lbl">Daily step goal</label><input type="number" class="inp" id="stepsGoalIn" value="10000" min="1000"/></div>
+    <div class="fg"><label class="lbl">Body weight (kg)</label><input type="number" class="inp" id="stepsWtIn" value="70" min="30"/></div>
+    <div class="mfooter"><button class="btn-cancel" onclick="closeStepsModal()">Cancel</button><button class="btn-primary" onclick="saveSteps()">Save</button></div>
+  </div>
+</div>
+
+<!-- ══ MIGRATION MODAL ══ -->
+<div class="overlay" id="migrateOverlay">
+  <div class="modal" style="width:500px;">
+    <div class="modal-title" id="migrateModalTitle">Import Previous Data</div>
+    <div style="font-size:11px;color:var(--muted2);margin-bottom:12px;line-height:1.7;" id="migrateModalDesc">
+      New days are imported; days that already have data here are skipped to avoid duplicates.
+    </div>
+    <div class="migrate-preview" id="migratePreview"></div>
+    <div id="migrateConflictNote" style="font-size:10px;color:var(--accent4);margin-bottom:4px;display:none;">⚠ Days marked SKIP already have entries and won't be overwritten.</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:2px;" id="migrateSummary"></div>
+    <div class="mfooter"><button class="btn-cancel" onclick="closeMigrateModal()">Cancel</button><button class="btn-primary" id="migrateRunBtn" onclick="runMigration()">Import</button></div>
+  </div>
+</div>
+
+<!-- ══ USER MENU ══ -->
+<div class="overlay" id="userMenuOverlay">
+  <div class="modal" style="width:320px;">
+    <div class="modal-title">Account</div>
+    <div style="text-align:center;padding:10px 0 18px;">
+      <img id="menuAvatar" src="" alt="" style="width:52px;height:52px;border-radius:50%;margin-bottom:8px;display:block;margin:0 auto 8px;"/>
+      <div id="menuName" style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:2px;"></div>
+      <div id="menuEmail" style="font-size:11px;color:var(--muted);"></div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:14px;text-align:center;" id="menuSyncStatus"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn-ghost" style="width:100%;font-size:11px;" onclick="goToUsdaSetup();closeUserMenu()">📦 Manage Food Database</button>
+      <button class="btn-ghost" style="width:100%;font-size:11px;" onclick="goToFbSetup();closeUserMenu()">⚙ Change Firebase Config</button>
+      <button class="btn-danger" style="width:100%;font-size:11px;" onclick="signOut()">Sign Out</button>
+    </div>
+    <div class="mfooter" style="justify-content:center;"><button class="btn-cancel" onclick="closeUserMenu()">Close</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK (compat version — works without bundler) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════
+//  Constants & helpers
+// ══════════════════════════════════════════
+const TODAY = new Date().toISOString().split('T')[0];
+const MEALS = ['Breakfast','Lunch','Dinner','Snacks'];
+const MEAL_ICONS = {Breakfast:'🌅',Lunch:'☀️',Dinner:'🌙',Snacks:'🍎'};
+const EX_ICONS = {running:'🏃',cycling:'🚴',swimming:'🏊',walking:'🚶',weight_training:'🏋️',hiit:'⚡',yoga:'🧘',pilates:'🤸',rowing:'🚣',jump_rope:'🪃',elliptical:'🔄',custom:'💪'};
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+let toastTimer=null;
+function toast(msg,type='ok',dur=2600){
+  const el=document.getElementById('toast');
+  clearTimeout(toastTimer);
+  el.textContent=msg;el.className='toast '+type+' show';
+  toastTimer=setTimeout(()=>el.classList.remove('show'),dur);
+}
+
+// ══════════════════════════════════════════
+//  Firebase config storage
+// ══════════════════════════════════════════
+const FB_CONFIG_KEY='nourish_fb_config';
+let fbApp=null, fbAuth=null, fbDb=null, currentUser=null;
+let syncEnabled=false;
+
+function loadFbConfig(){
+  try{const s=localStorage.getItem(FB_CONFIG_KEY);if(s)return JSON.parse(s);}catch(e){}return null;
+}
+function saveFbConfig_ls(cfg){localStorage.setItem(FB_CONFIG_KEY,JSON.stringify(cfg));}
+
+function parseFbConfig(raw){
+  try{
+    let clean=raw.trim();
+    // Strip assignment wrappers: const x = {...}; or var/let
+    clean=clean.replace(/^(const|let|var)\s+\w+\s*=\s*/,'').replace(/;?\s*$/,'').trim();
+    // Strip initializeApp(...) wrapper
+    clean=clean.replace(/^.*?initializeApp\s*\(\s*/,'').replace(/\s*\)\s*;?\s*$/,'').trim();
+    // Extract just the { ... } block
+    const objMatch=clean.match(/(\{[\s\S]*\})/);
+    if(objMatch)clean=objMatch[1];
+    // Quote unquoted object keys
+    clean=clean.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g,'$1"$2":');
+    // Remove trailing commas before } or ]
+    clean=clean.replace(/,([\s\r\n]*[}\]])/g,'$1');
+    // Replace single-quoted strings with double-quoted
+    clean=clean.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g,'"$1"');
+    const parsed=JSON.parse(clean);
+    if(!parsed.apiKey||!parsed.projectId||!parsed.authDomain)return null;
+    return parsed;
+  }catch(e){
+    // Fallback: extract key:value pairs with regex
+    try{
+      const obj={};
+      const pairs=[...raw.matchAll(/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:\s*["']([^"']+)["']/g)];
+      for(const [,k,v] of pairs)obj[k]=v;
+      if(obj.apiKey&&obj.projectId&&obj.authDomain)return obj;
+    }catch(e2){}
+    return null;
+  }
+}
+
+function saveFbConfig(){
+  const raw=document.getElementById('fbConfigInput').value.trim();
+  const errEl=document.getElementById('fbConfigError');
+  if(!raw){errEl.textContent='Please paste your Firebase config.';errEl.style.display='block';return;}
+  const cfg=parseFbConfig(raw);
+  if(!cfg||!cfg.apiKey||!cfg.projectId){
+    errEl.textContent='Could not parse config — make sure you copied the full firebaseConfig object.';
+    errEl.style.display='block';return;
+  }
+  errEl.style.display='none';
+  saveFbConfig_ls(cfg);
+  initFirebase(cfg);
+}
+
+function skipFbSetup(){
+  localStorage.setItem('nourish_fb_skipped','1');
+  showScreen('usda');
+}
+
+function goToFbSetup(){
+  const cfg=loadFbConfig();
+  if(cfg){
+    document.getElementById('fbConfigInput').value=JSON.stringify(cfg,null,2);
+  }
+  showScreen('fb');
+}
+function goToUsdaSetup(){showScreen('usda');initUsdaSetup();}
+
+// ══════════════════════════════════════════
+//  Screen management
+// ══════════════════════════════════════════
+function showScreen(name){
+  document.getElementById('fbSetupScreen').classList.toggle('show',name==='fb');
+  document.getElementById('usdaSetupScreen').classList.toggle('show',name==='usda');
+  document.getElementById('authScreen').classList.toggle('show',name==='auth');
+  document.getElementById('app').classList.toggle('show',name==='app');
+}
+
+// ══════════════════════════════════════════
+//  Firebase init & auth
+// ══════════════════════════════════════════
+function initFirebase(cfg){
+  try{
+    if(fbApp)fbApp.delete();
+    fbApp=firebase.initializeApp(cfg);
+    fbAuth=firebase.auth();
+    fbDb=firebase.firestore();
+    fbDb.enablePersistence({synchronizeTabs:true}).catch(()=>{});// offline support
+    syncEnabled=true;
+    showScreen('auth');
+    fbAuth.onAuthStateChanged(user=>{
+      if(user){currentUser=user;onSignedIn();}
+      else{showScreen('auth');}
+    });
+  }catch(e){
+    document.getElementById('fbConfigError').textContent='Firebase error: '+e.message;
+    document.getElementById('fbConfigError').style.display='block';
+    showScreen('fb');
+  }
+}
+
+async function signInGoogle(){
+  const errEl=document.getElementById('authError');
+  const loadEl=document.getElementById('authLoading');
+  errEl.style.display='none';loadEl.style.display='block';
+  try{
+    const provider=new firebase.auth.GoogleAuthProvider();
+    await fbAuth.signInWithPopup(provider);
+  }catch(e){
+    loadEl.style.display='none';
+    errEl.textContent=e.code==='auth/popup-blocked'
+      ?'Popup blocked — please allow popups for this page and try again.'
+      :'Sign-in failed: '+e.message;
+    errEl.style.display='block';
+  }
+}
+
+async function signOut(){
+  closeUserMenu();
+  await fbAuth.signOut();
+  currentUser=null;
+  showScreen('auth');
+  toast('Signed out','info');
+}
+
+async function onSignedIn(){
+  // Show USDA setup if DB not yet imported, else go straight to app
+  await openDB();
+  const count=await countFoods();
+  if(count===0&&!localStorage.getItem('nourish_usda_done')){
+    showScreen('usda');
+    initUsdaSetup();
+  } else {
+    await enterApp();
+  }
+}
+
+// ══════════════════════════════════════════
+//  IndexedDB (food database, local only)
+// ══════════════════════════════════════════
+const IDB_NAME='NourishDB',IDB_VER=2;
+let idb=null;
+
+function openDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(IDB_NAME,IDB_VER);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('foods')){d.createObjectStore('foods',{keyPath:'id'}).createIndex('desc','desc',{unique:false});}
+      if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta',{keyPath:'key'});
+    };
+    req.onsuccess=e=>{idb=e.target.result;res();};
+    req.onerror=()=>rej(req.error);
+  });
+}
+function idbMeta(k,v){
+  return new Promise(r=>{
+    if(!idb)return r(null);
+    const mode=v!==undefined?'readwrite':'readonly';
+    const tx=idb.transaction('meta',mode);
+    const store=tx.objectStore('meta');
+    if(v!==undefined){store.put({key:k,value:v});tx.oncomplete=()=>r(v);}
+    else{const req=store.get(k);req.onsuccess=()=>r(req.result?req.result.value:null);req.onerror=()=>r(null);}
+  });
+}
+function countFoods(){return new Promise(r=>{if(!idb)return r(0);const tx=idb.transaction('foods','readonly');const req=tx.objectStore('foods').count();req.onsuccess=()=>r(req.result);req.onerror=()=>r(0);});}
+function searchFoods(q,limit=14){
+  return new Promise(r=>{
+    if(!idb)return r([]);
+    const query=q.toLowerCase().trim(),results=[];
+    const tx=idb.transaction('foods','readonly');
+    const req=tx.objectStore('foods').openCursor();
+    req.onsuccess=e=>{
+      const c=e.target.result;
+      if(!c||results.length>=limit){r(results);return;}
+      if((c.value.desc||'').toLowerCase().includes(query))results.push(c.value);
+      c.continue();
+    };
+    req.onerror=()=>r(results);
+  });
+}
+
+// ══════════════════════════════════════════
+//  USDA Import
+// ══════════════════════════════════════════
+async function initUsdaSetup(){
+  await openDB();
+  const count=await countFoods(),iDate=await idbMeta('importDate');
+  const dot=document.getElementById('statusDot'),txt=document.getElementById('statusText');
+  dot.classList.remove('pulse');
+  if(count>0){dot.classList.add('green');txt.textContent=`Database ready — ${count.toLocaleString()} foods${iDate?' · '+iDate:''}`;document.getElementById('importSection').style.opacity='.5';}
+  else{dot.classList.add('amber');txt.textContent='No food database — import below or skip';}
+}
+
+function enterFromUsda(){
+  localStorage.setItem('nourish_usda_done','1');
+  if(syncEnabled&&currentUser){enterApp();}
+  else if(localStorage.getItem('nourish_fb_skipped')){enterApp();}
+  else{showScreen('auth');}
+}
+
+async function importFiles(files){
+  const arr=Array.from(files);
+  const ff=arr.find(f=>f.name.toLowerCase()==='food.csv');
+  const nf=arr.find(f=>f.name.toLowerCase()==='food_nutrient.csv');
+  if(!ff){toast('Please include food.csv','err');return;}
+  showProgress(true);setProgress(5,'Parsing food.csv…');
+  const fm={};
+  parseCSV(await readFile(ff)).forEach(r=>{if(r.fdc_id)fm[r.fdc_id]={id:parseInt(r.fdc_id),desc:r.description||r.long_name||''};});
+  setProgress(35,'Parsing food_nutrient.csv…');
+  if(nf){
+    const NUT={'1008':'kcal','1003':'protein','1005':'carbs','1004':'fat'};
+    parseCSV(await readFile(nf)).forEach(r=>{
+      if(!NUT[r.nutrient_id])return;
+      const food=fm[r.fdc_id];if(!food)return;
+      food[NUT[r.nutrient_id]]=Math.round((parseFloat(r.amount)||0)*10)/10;
+    });
+  }
+  setProgress(70,'Writing to IndexedDB…');
+  const items=Object.values(fm).filter(f=>f.desc);
+  for(let i=0;i<items.length;i+=500){
+    await bulkPut(items.slice(i,i+500));
+    setProgress(70+Math.round((i/items.length)*28),`Storing… ${i.toLocaleString()} / ${items.length.toLocaleString()}`);
+  }
+  await idbMeta('importDate',new Date().toISOString().split('T')[0]);
+  await idbMeta('count',items.length);
+  setProgress(100,`Done — ${items.length.toLocaleString()} foods loaded ✓`);
+  document.getElementById('statusDot').classList.remove('pulse','amber');
+  document.getElementById('statusDot').classList.add('green');
+  document.getElementById('statusText').textContent=`Database ready — ${items.length.toLocaleString()} foods`;
+  setTimeout(()=>initUsdaSetup(),400);
+}
+function bulkPut(items){return new Promise((r,rej)=>{const tx=idb.transaction('foods','readwrite');const s=tx.objectStore('foods');items.forEach(i=>s.put(i));tx.oncomplete=r;tx.onerror=()=>rej(tx.error);});}
+function readFile(f){return new Promise((r,rej)=>{const rd=new FileReader();rd.onload=e=>r(e.target.result);rd.onerror=rej;rd.readAsText(f);});}
+function parseCSV(text){
+  const lines=text.split('\n');if(!lines.length)return[];
+  const headers=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase().replace(/ /g,'_'));
+  return lines.slice(1).filter(l=>l.trim()).map(line=>{
+    const vals=splitCSV(line),obj={};
+    headers.forEach((h,i)=>{obj[h]=(vals[i]||'').replace(/^"|"$/g,'').trim();});return obj;
+  });
+}
+function splitCSV(line){const r=[];let cur='',inQ=false;for(const c of line){if(c==='"')inQ=!inQ;else if(c===','&&!inQ){r.push(cur);cur='';}else cur+=c;}r.push(cur);return r;}
+function showProgress(s){document.getElementById('progressWrap').style.display=s?'block':'none';}
+function setProgress(pct,label){document.getElementById('progressFill').style.width=pct+'%';document.getElementById('progressLabel').textContent=label;}
+
+// ══════════════════════════════════════════
+//  App State (Firestore-backed)
+// ══════════════════════════════════════════
+// Structure in Firestore:
+//   users/{uid}/profile  → { goal, stepsGoal, bodyWeight, recentFoods }
+//   users/{uid}/days/{YYYY-MM-DD} → { foods:[], exercises:[], steps:0 }
+
+let S={ goal:2000, stepsGoal:10000, bodyWeight:70, recentFoods:[], days:{} };
+let firestoreListeners=[];
+let syncStatus='idle'; // idle | syncing | synced | error
+
+function setSyncDot(state){
+  syncStatus=state;
+  const dot=document.getElementById('syncDot');
+  dot.className='sync-dot';
+  if(state==='synced')dot.classList.add('synced');
+  else if(state==='syncing')dot.classList.add('syncing');
+  else if(state==='error')dot.classList.add('error');
+  dot.title=state==='synced'?'All data synced':state==='syncing'?'Syncing…':state==='error'?'Sync error':'Not synced';
+}
+
+function userRef(){return fbDb.collection('users').doc(currentUser.uid);}
+function dayRef(date){return userRef().collection('days').doc(date||TODAY);}
+function profileRef(){return userRef().collection('profile').doc('settings');}
+
+async function loadProfile(){
+  try{
+    const snap=await profileRef().get();
+    if(snap.exists){
+      const d=snap.data();
+      S.goal=d.goal||2000;S.stepsGoal=d.stepsGoal||10000;
+      S.bodyWeight=d.bodyWeight||70;S.recentFoods=d.recentFoods||[];
+    }
+  }catch(e){console.warn('loadProfile:',e);}
+}
+
+async function saveProfile(){
+  if(!syncEnabled||!currentUser)return;
+  setSyncDot('syncing');
+  try{
+    await profileRef().set({
+      goal:S.goal,stepsGoal:S.stepsGoal,
+      bodyWeight:S.bodyWeight,recentFoods:S.recentFoods||[]
+    },{merge:true});
+    setSyncDot('synced');
+  }catch(e){setSyncDot('error');console.warn('saveProfile:',e);}
+}
+
+function getDay(date){
+  const d=date||TODAY;
+  if(!S.days[d])S.days[d]={foods:[],exercises:[],steps:0};
+  return S.days[d];
+}
+
+async function saveDay(date){
+  const d=date||TODAY;
+  const day=getDay(d);
+  if(syncEnabled&&currentUser){
+    setSyncDot('syncing');
+    try{
+      await dayRef(d).set({foods:day.foods,exercises:day.exercises,steps:day.steps||0});
+      setSyncDot('synced');
+    }catch(e){setSyncDot('error');console.warn('saveDay:',e);}
+  }
+}
+
+async function loadAllDays(){
+  if(!syncEnabled||!currentUser)return;
+  try{
+    const snap=await userRef().collection('days').get();
+    snap.forEach(doc=>{S.days[doc.id]=doc.data();});
+  }catch(e){console.warn('loadAllDays:',e);}
+}
+
+// Real-time listener for today's document (so mobile changes appear on desktop instantly)
+function listenToday(){
+  const unsub=dayRef(TODAY).onSnapshot(snap=>{
+    if(!snap.exists)return;
+    const data=snap.data();
+    // Only update if data differs to avoid render loop
+    const local=JSON.stringify(getDay(TODAY));
+    const remote=JSON.stringify(data);
+    if(local!==remote){
+      S.days[TODAY]=data;
+      renderAll();
+      setSyncDot('synced');
+    }
+  },e=>{setSyncDot('error');console.warn('listenToday:',e);});
+  firestoreListeners.push(unsub);
+}
+
+function detachListeners(){firestoreListeners.forEach(u=>u());firestoreListeners=[];}
+
+function addToRecent(entry){
+  if(!S.recentFoods)S.recentFoods=[];
+  S.recentFoods=S.recentFoods.filter(f=>!(f.name===entry.name&&f.amount===entry.amount));
+  S.recentFoods.unshift({name:entry.name,amount:entry.amount,kcal:entry.kcal,p:entry.p||0,c:entry.c||0,f:entry.f||0});
+  if(S.recentFoods.length>20)S.recentFoods=S.recentFoods.slice(0,20);
+}
+
+// Local-only fallback (no Firebase)
+const LOCAL_KEY='nourish4_local';
+function loadLocal(){try{const s=localStorage.getItem(LOCAL_KEY);if(s)return JSON.parse(s);}catch(e){}return{goal:2000,stepsGoal:10000,bodyWeight:70,days:{},recentFoods:[]};}
+function saveLocal(){try{localStorage.setItem(LOCAL_KEY,JSON.stringify(S));}catch(e){}}
+
+// ══════════════════════════════════════════
+//  App Entry
+// ══════════════════════════════════════════
+async function enterApp(){
+  showScreen('app');
+  document.getElementById('headerDate').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  if(syncEnabled&&currentUser){
+    setSyncDot('syncing');
+    await loadProfile();
+    await loadAllDays();
+    setSyncDot('synced');
+    listenToday();
+    // Update user UI
+    const av=document.getElementById('userAvatar');
+    if(currentUser.photoURL){av.src=currentUser.photoURL;av.style.display='block';}
+    document.getElementById('userName').textContent=currentUser.displayName?.split(' ')[0]||'Account';
+  } else {
+    S=loadLocal();
+    setSyncDot('idle');
+    document.getElementById('userName').textContent='Local';
+  }
+
+  document.getElementById('goalInput').value=S.goal;
+  document.getElementById('goalInput').addEventListener('input',e=>{
+    S.goal=parseInt(e.target.value)||2000;
+    if(syncEnabled&&currentUser)saveProfile();else saveLocal();
+    renderSidebar();
+  });
+
+  const count=await countFoods(),iDate=await idbMeta('importDate');
+  document.getElementById('dbInfo').textContent=count>0
+    ?`📦 ${count.toLocaleString()} foods · ${iDate||'?'} · manage`
+    :'⚠ No food DB · click to import';
+
+  renderAll();
+  checkMigration();
+  setupJsonDropZone();
+}
+
+// ══════════════════════════════════════════
+//  Render
+// ══════════════════════════════════════════
+function renderAll(){renderMeals();renderSidebar();renderExercise();renderSteps();}
+
+function renderSidebar(){
+  const d=getDay();
+  const eaten=d.foods.reduce((s,f)=>s+f.kcal,0);
+  const prot=d.foods.reduce((s,f)=>s+(f.p||0),0);
+  const carbs=d.foods.reduce((s,f)=>s+(f.c||0),0);
+  const fat=d.foods.reduce((s,f)=>s+(f.f||0),0);
+  const exBurn=d.exercises.reduce((s,e)=>s+e.burn,0);
+  const stepBurn=Math.round((d.steps||0)*0.04*(S.bodyWeight||70)/70);
+  const goal=S.goal,circ=295;
+  document.getElementById('ringCal').textContent=eaten;
+  document.getElementById('ringFill').style.strokeDashoffset=circ-circ*Math.min(eaten/goal,1);
+  document.getElementById('goalSpan').textContent=goal;
+  const rem=goal-eaten;const remEl=document.getElementById('remainSpan');
+  remEl.textContent=rem>=0?rem+' left':Math.abs(rem)+' over';remEl.style.color=rem>=0?'var(--accent)':'var(--accent3)';
+  document.getElementById('mp').textContent=Math.round(prot)+'g';
+  document.getElementById('mc').textContent=Math.round(carbs)+'g';
+  document.getElementById('mf').textContent=Math.round(fat)+'g';
+  document.getElementById('netEaten').textContent=eaten;
+  document.getElementById('netEx').textContent='−'+exBurn;
+  document.getElementById('netSteps').textContent='−'+stepBurn;
+  const net=eaten-exBurn-stepBurn;const netEl=document.getElementById('netTotal');
+  netEl.textContent=net;netEl.className='net-big '+(net>goal?'over':'ok');
+}
+
+function renderMeals(date){
+  const dk=date||TODAY,d=getDay(dk);
+  document.getElementById('mealArea').innerHTML=MEALS.map(meal=>{
+    const items=d.foods.filter(f=>f.meal===meal);
+    const total=items.reduce((s,f)=>s+f.kcal,0);
+    return `<div class="meal-section">
+      <div class="meal-header">
+        <div class="meal-label">${MEAL_ICONS[meal]} ${meal} <span class="meal-kcal">${total?'· '+total+' kcal':''}</span></div>
+        <button class="btn-add" onclick="openFoodModal('${meal}','${dk}')">+ Add</button>
+      </div>
+      ${items.length?items.map((f,i)=>`
+        <div class="food-item">
+          <div class="food-dot"></div>
+          <div class="food-info"><div class="food-name">${esc(f.name)}</div><div class="food-meta">${esc(f.amount)} · P:${f.p||0}g C:${f.c||0}g F:${f.f||0}g</div></div>
+          <div class="food-kcal">${f.kcal}</div>
+          <button class="del-btn" onclick="delFood('${meal}',${i},'${dk}')">×</button>
+        </div>`).join(''):'<div class="empty-slot">Nothing logged yet</div>'}
+    </div>`;
+  }).join('');
+}
+
+function renderExercise(){
+  const d=getDay();const el=document.getElementById('exList');
+  if(!d.exercises.length){el.innerHTML='<div class="empty-slot">No workouts logged yet</div>';return;}
+  el.innerHTML=d.exercises.map((e,i)=>`
+    <div class="ex-item">
+      <div class="ex-icon">${EX_ICONS[e.type]||'💪'}</div>
+      <div class="ex-info"><div class="ex-name">${esc(e.name)}</div><div class="ex-meta">${e.dur} min · ${e.wt} kg</div></div>
+      <div class="ex-burn">−${e.burn} kcal</div>
+      <button class="del-btn" onclick="delEx(${i},null)">×</button>
+    </div>`).join('');
+}
+
+function renderSteps(){
+  const d=getDay();const steps=d.steps||0,goal=S.stepsGoal||10000,wt=S.bodyWeight||70;
+  const burn=Math.round(steps*0.04*wt/70),pct=Math.min(Math.round(steps/goal*100),100);
+  document.getElementById('stepsNum').textContent=steps.toLocaleString();
+  document.getElementById('stepsBurn').textContent='≈ '+burn+' kcal';
+  document.getElementById('stepsGoalLbl').textContent='/ '+goal.toLocaleString();
+  document.getElementById('stepsFill').style.width=pct+'%';
+  document.getElementById('stepsPct').textContent=pct+'%';
+}
+
+// ══════════════════════════════════════════
+//  History
+// ══════════════════════════════════════════
+let expandedDays=new Set();
+function renderHistory(){
+  const days=Object.keys(S.days).sort().reverse();
+  document.getElementById('histBadge').textContent=days.length+' day'+(days.length!==1?'s':'');
+  if(!days.length){document.getElementById('histList').innerHTML='<div class="empty-slot">No diary entries yet</div>';return;}
+  document.getElementById('histList').innerHTML=days.map(d=>buildHistCard(d)).join('');
+}
+function buildHistCard(d){
+  const day=getDay(d);
+  const eaten=day.foods.reduce((s,f)=>s+f.kcal,0);
+  const exBurn=day.exercises.reduce((s,e)=>s+e.burn,0);
+  const stepBurn=Math.round((day.steps||0)*0.04*(S.bodyWeight||70)/70);
+  const pct=Math.min(Math.round(eaten/S.goal*100),100);
+  const isToday=d===TODAY;
+  const dateStr=new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',month:'short',day:'numeric'});
+  const expanded=expandedDays.has(d);
+  return `<div class="hist-day" id="histday-${d}">
+    <div class="hist-day-hdr${expanded?' expanded':''}" onclick="toggleHistDay('${d}')">
+      <div>
+        <div class="hist-date">${esc(dateStr)}${isToday?' <span style="font-size:9px;color:var(--accent);margin-left:6px;">TODAY</span>':''}</div>
+        <div class="hist-day-meta">${day.foods.length} foods · ${day.exercises.length} workouts · ${(day.steps||0).toLocaleString()} steps</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="hist-stats">
+          <div class="hist-stat"><div class="hist-stat-val" style="color:var(--accent)">${eaten}</div><div class="hist-stat-lbl">kcal</div></div>
+          <div class="hist-stat"><div class="hist-stat-val" style="color:var(--accent2)">${exBurn+stepBurn}</div><div class="hist-stat-lbl">burned</div></div>
+        </div>
+        <div class="hist-chevron${expanded?' open':''}">▼</div>
+      </div>
+    </div>
+    <div class="hist-bar-wrap"><div class="hist-bar"><div class="hist-fill" style="width:${pct}%"></div></div><div class="hist-pct">${pct}% of ${S.goal} kcal</div></div>
+    <div class="hist-body${expanded?' open':''}" id="histbody-${d}">${expanded?buildHistBody(d,day):''}</div>
+  </div>`;
+}
+function buildHistBody(d,day){
+  const mealHTML=MEALS.map(meal=>{
+    const items=day.foods.filter(f=>f.meal===meal);
+    const total=items.reduce((s,f)=>s+f.kcal,0);
+    return `<div class="hist-section-title">${MEAL_ICONS[meal]} ${meal}${total?' <span style="color:var(--muted2);font-size:9px;">'+total+' kcal</span>':''}</div>
+      ${items.length?items.map((f,i)=>`
+        <div class="food-item" style="background:var(--surface2);">
+          <div class="food-dot"></div>
+          <div class="food-info"><div class="food-name">${esc(f.name)}</div><div class="food-meta">${esc(f.amount)} · P:${f.p||0}g C:${f.c||0}g F:${f.f||0}g</div></div>
+          <div class="food-kcal">${f.kcal}</div>
+          <button class="del-btn" onclick="delFoodHist('${d}','${meal}',${i})">×</button>
+        </div>`).join('')
+      :'<div style="font-size:10px;color:var(--muted);padding:3px 0 8px;">Nothing logged</div>'}`;
+  }).join('');
+  const exHTML=day.exercises.length
+    ?day.exercises.map((e,i)=>`
+      <div class="ex-item" style="background:var(--surface2);">
+        <div class="ex-icon">${EX_ICONS[e.type]||'💪'}</div>
+        <div class="ex-info"><div class="ex-name">${esc(e.name)}</div><div class="ex-meta">${e.dur} min · ${e.wt} kg</div></div>
+        <div class="ex-burn">−${e.burn} kcal</div>
+        <button class="del-btn" onclick="delExHist('${d}',${i})">×</button>
+      </div>`).join('')
+    :'<div style="font-size:10px;color:var(--muted);padding:3px 0 8px;">No workouts</div>';
+  const stepBurn=Math.round((day.steps||0)*0.04*(S.bodyWeight||70)/70);
+  return `${mealHTML}
+    <div class="hist-section-title">💪 Exercise</div>${exHTML}
+    <div class="hist-section-title">👟 Steps</div>
+    <div class="hist-steps-row">
+      <div><div class="hist-steps-val">${(day.steps||0).toLocaleString()}</div><div style="font-size:9px;color:var(--muted);">≈ ${stepBurn} kcal</div></div>
+      <div style="flex:1"></div>
+      <input type="number" class="hist-steps-inp" id="histStepsInp-${d}" value="${day.steps||0}" min="0"/>
+      <button class="btn-ghost" style="font-size:10px;" onclick="saveHistSteps('${d}')">Save</button>
+    </div>
+    <div class="hist-actions">
+      <button class="btn-add" style="font-size:10px;" onclick="openFoodModal('Breakfast','${d}')">+ Food</button>
+      <button class="btn-ghost" style="font-size:10px;" onclick="openExModal('${d}')">+ Exercise</button>
+      <button class="btn-danger" style="font-size:10px;" onclick="deleteDay('${d}')">🗑 Delete Day</button>
+    </div>`;
+}
+function toggleHistDay(d){
+  if(expandedDays.has(d))expandedDays.delete(d);else expandedDays.add(d);
+  refreshHistCard(d);
+}
+function refreshHistCard(d){
+  const el=document.getElementById('histday-'+d);if(!el)return;
+  const tmp=document.createElement('div');tmp.innerHTML=buildHistCard(d);
+  el.replaceWith(tmp.firstElementChild);
+}
+function delFoodHist(date,meal,idx){
+  const day=getDay(date);const items=day.foods.filter(f=>f.meal===meal);
+  day.foods=day.foods.filter(f=>f!==items[idx]);
+  persistDay(date);refreshHistCard(date);if(date===TODAY){renderMeals();renderSidebar();}
+}
+function delExHist(date,idx){
+  getDay(date).exercises.splice(idx,1);persistDay(date);
+  refreshHistCard(date);if(date===TODAY){renderExercise();renderSidebar();}
+}
+function saveHistSteps(date){
+  const inp=document.getElementById('histStepsInp-'+date);if(!inp)return;
+  getDay(date).steps=parseInt(inp.value)||0;persistDay(date);
+  refreshHistCard(date);if(date===TODAY)renderSteps();renderSidebar();toast('Steps updated!','ok');
+}
+function deleteDay(date){
+  if(!confirm(`Delete all data for ${date}?`))return;
+  // Also delete from Firestore
+  if(syncEnabled&&currentUser){
+    dayRef(date).delete().catch(e=>console.warn('deleteDay firestore:',e));
+  }
+  delete S.days[date];expandedDays.delete(date);
+  if(!syncEnabled)saveLocal();
+  renderHistory();if(date===TODAY)renderAll();
+}
+
+// ══════════════════════════════════════════
+//  Persist helper (Firestore or local)
+// ══════════════════════════════════════════
+function persistDay(date){
+  if(syncEnabled&&currentUser)saveDay(date);else saveLocal();
+}
+function persistProfile(){
+  if(syncEnabled&&currentUser)saveProfile();else saveLocal();
+}
+
+// ══════════════════════════════════════════
+//  Page nav
+// ══════════════════════════════════════════
+function showPage(p,btn){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');btn.classList.add('active');
+  if(p==='history')renderHistory();
+}
+
+// ══════════════════════════════════════════
+//  Food Modal
+// ══════════════════════════════════════════
+let curMeal='Breakfast',curFoodDate=TODAY,selFood=null,curFoodTab='search';
+function openFoodModal(meal,date){
+  curMeal=meal||'Breakfast';curFoodDate=date||TODAY;selFood=null;
+  const dateLabel=curFoodDate===TODAY?'Today':new Date(curFoodDate+'T12:00:00').toLocaleDateString('en-GB',{month:'short',day:'numeric'});
+  document.getElementById('foodModalTitle').textContent=`Add Food — ${curMeal} (${dateLabel})`;
+  document.getElementById('fsInput').value='';
+  document.getElementById('fsResults').style.display='none';
+  document.getElementById('fsPreview').style.display='none';
+  ['mName','mKcal','mP','mC','mF'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mQty').value='1';
+  document.getElementById('rName').value='';
+  document.getElementById('ingrList').innerHTML='';
+  document.getElementById('rTotal').textContent='0';
+  const hasRecent=S.recentFoods&&S.recentFoods.length>0;
+  const defaultTab=hasRecent?'recent':'search';
+  switchFoodTab(defaultTab,document.getElementById(hasRecent?'tabRecent':'tabSearch'));
+  document.getElementById('foodOverlay').classList.add('open');
+}
+function closeFoodModal(){document.getElementById('foodOverlay').classList.remove('open');}
+function switchFoodTab(tab,btn){
+  curFoodTab=tab;
+  document.querySelectorAll('#foodOverlay .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#foodOverlay .pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('fp-'+tab).classList.add('active');
+  if(tab==='recent')renderRecentGrid();
+}
+function renderRecentGrid(){
+  const grid=document.getElementById('recentGrid');
+  const recent=S.recentFoods||[];
+  if(!recent.length){grid.innerHTML='<div class="recent-empty">No foods yet — they appear here automatically after logging.</div>';return;}
+  grid.innerHTML=recent.map((f,i)=>`
+    <div class="recent-item" onclick="customiseRecent(${i})">
+      <div class="recent-dot"></div>
+      <div style="flex:1;min-width:0;"><div class="recent-name">${esc(f.name)}</div><div class="recent-sub">${esc(f.amount)}</div></div>
+      <div class="recent-kcal">${f.kcal} kcal</div>
+      <button class="recent-add" title="Quick-add" onclick="event.stopPropagation();quickAddRecent(${i})">+</button>
+    </div>`).join('');
+}
+function quickAddRecent(idx){
+  const f=S.recentFoods[idx];const entry={...f,meal:curMeal};
+  getDay(curFoodDate).foods.push(entry);
+  addToRecent(entry);persistDay(curFoodDate);persistProfile();
+  renderAll();if(curFoodDate!==TODAY){refreshHistCard(curFoodDate);renderSidebar();}
+  closeFoodModal();toast(esc(f.name)+' logged!','ok');
+}
+function customiseRecent(idx){
+  const f=S.recentFoods[idx];
+  document.getElementById('mName').value=f.name;document.getElementById('mKcal').value=f.kcal;
+  document.getElementById('mP').value=f.p||0;document.getElementById('mC').value=f.c||0;
+  document.getElementById('mF').value=f.f||0;
+  const parts=(f.amount||'1 serving').split(' ');document.getElementById('mQty').value=parseFloat(parts[0])||1;
+  switchFoodTab('manual',document.getElementById('tabManual'));
+}
+let searchTimer=null;
+function debouncedSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(doSearch,280);}
+async function doSearch(){
+  const q=document.getElementById('fsInput').value.trim();
+  const el=document.getElementById('fsResults');
+  if(q.length<2){el.style.display='none';return;}
+  if(!idb||await countFoods()===0){el.innerHTML='<div class="sr-none">No local database — use Manual tab or import first</div>';el.style.display='block';return;}
+  el.innerHTML='<div class="sr-none">Searching…</div>';el.style.display='block';
+  const results=await searchFoods(q,14);
+  if(!results.length){el.innerHTML='<div class="sr-none">No results — try Manual entry</div>';return;}
+  el.innerHTML=results.map(r=>`
+    <div class="sr-item" onclick='pickFood(${JSON.stringify({id:r.id,desc:r.desc,kcal:r.kcal||r.energy||0,p:r.protein||0,c:r.carbs||0,f:r.fat||0})})'>
+      <div class="sr-name">${esc(r.desc)}</div>
+      <div class="sr-meta">Per 100g: ${Math.round(r.kcal||0)} kcal · P:${Math.round(r.protein||0)}g · C:${Math.round(r.carbs||0)}g · F:${Math.round(r.fat||0)}g</div>
+    </div>`).join('');
+}
+function pickFood(food){selFood=food;document.getElementById('fsInput').value=food.desc;document.getElementById('fsResults').style.display='none';updatePreview();}
+function updatePreview(){
+  if(!selFood)return;
+  const qty=parseFloat(document.getElementById('fsQty').value)||100;
+  const unit=document.getElementById('fsUnit').value;
+  let g=qty;if(unit==='oz')g=qty*28.35;else if(unit==='serving')g=qty*100;
+  const fac=g/100;
+  document.getElementById('fsPreviewKcal').textContent=Math.round(selFood.kcal*fac);
+  document.getElementById('fsPreviewMacros').textContent=`P: ${Math.round(selFood.p*fac)}g · C: ${Math.round(selFood.c*fac)}g · F: ${Math.round(selFood.f*fac)}g`;
+  document.getElementById('fsPreview').style.display='block';
+}
+function addIngr(){
+  const row=document.createElement('div');row.className='ingr-row';
+  row.innerHTML=`<input type="text" class="inp" placeholder="Ingredient" style="flex:2;font-size:11px;"/>
+    <input type="number" class="inp" placeholder="kcal" min="0" style="flex:1;font-size:11px;" oninput="updateRTotal()"/>
+    <button class="del-btn" onclick="this.parentNode.remove();updateRTotal()" style="font-size:17px;">×</button>`;
+  document.getElementById('ingrList').appendChild(row);
+}
+function updateRTotal(){let t=0;document.querySelectorAll('#ingrList input[type=number]').forEach(i=>t+=parseInt(i.value)||0);document.getElementById('rTotal').textContent=t;}
+function logFood(){
+  const d=getDay(curFoodDate);let entry=null;
+  if(curFoodTab==='recent'){toast('Use + to quick-add or click to customise','err');return;}
+  else if(curFoodTab==='search'){
+    if(!selFood){toast('Select a food from search results','err');return;}
+    const qty=parseFloat(document.getElementById('fsQty').value)||100;
+    const unit=document.getElementById('fsUnit').value;
+    let g=qty;if(unit==='oz')g=qty*28.35;else if(unit==='serving')g=qty*100;
+    const fac=g/100;
+    entry={meal:curMeal,name:selFood.desc,amount:`${qty}${unit}`,
+      kcal:Math.round(selFood.kcal*fac),p:Math.round(selFood.p*fac),
+      c:Math.round(selFood.c*fac),f:Math.round(selFood.f*fac)};
+  } else if(curFoodTab==='manual'){
+    const name=document.getElementById('mName').value.trim();
+    const kcal=parseInt(document.getElementById('mKcal').value);
+    if(!name||!kcal){toast('Enter name and calories','err');return;}
+    entry={meal:curMeal,name,amount:`${document.getElementById('mQty').value} ${document.getElementById('mUnit').value}`,
+      kcal,p:parseInt(document.getElementById('mP').value)||0,
+      c:parseInt(document.getElementById('mC').value)||0,
+      f:parseInt(document.getElementById('mF').value)||0};
+  } else {
+    const name=document.getElementById('rName').value.trim()||'Recipe';
+    const rows=document.querySelectorAll('#ingrList .ingr-row');
+    let total=0;const ingrs=[];
+    rows.forEach(row=>{const ins=row.querySelectorAll('input');if(ins[0].value.trim()){ingrs.push(ins[0].value.trim());total+=parseInt(ins[1].value)||0;}});
+    if(!total){toast('Add ingredients with calories','err');return;}
+    entry={meal:curMeal,name,amount:ingrs.slice(0,3).join(', ')+(ingrs.length>3?' +more':''),kcal:total,p:0,c:0,f:0};
+  }
+  d.foods.push(entry);addToRecent(entry);
+  persistDay(curFoodDate);persistProfile();
+  renderAll();if(curFoodDate!==TODAY){refreshHistCard(curFoodDate);renderSidebar();}
+  closeFoodModal();toast('Food logged!','ok');
+}
+function delFood(meal,idx,date){
+  const d=getDay(date||TODAY);const items=d.foods.filter(f=>f.meal===meal);
+  d.foods=d.foods.filter(f=>f!==items[idx]);
+  persistDay(date||TODAY);renderAll();
+}
+
+// ══════════════════════════════════════════
+//  Exercise
+// ══════════════════════════════════════════
+let curExDate=TODAY;
+function openExModal(date){curExDate=date||TODAY;document.getElementById('exWt').value=S.bodyWeight||70;document.getElementById('exOverlay').classList.add('open');calcBurn();}
+function closeExModal(){document.getElementById('exOverlay').classList.remove('open');}
+function onExActChange(){const c=document.getElementById('exAct').value==='custom';document.getElementById('customNameFg').style.display=c?'block':'none';document.getElementById('customMetFg').style.display=c?'block':'none';calcBurn();}
+document.getElementById('exAct').addEventListener('change',onExActChange);
+function calcBurn(){
+  const actEl=document.getElementById('exAct');
+  const met=actEl.value==='custom'?(parseFloat(document.getElementById('exCustomMet').value)||5):parseFloat(actEl.value)||5;
+  const dur=parseInt(document.getElementById('exDur').value)||30;const wt=parseInt(document.getElementById('exWt').value)||70;
+  document.getElementById('burnNum').textContent=Math.round(met*wt*(dur/60));
+}
+function logExercise(){
+  const actEl=document.getElementById('exAct');const isCustom=actEl.value==='custom';
+  const met=isCustom?(parseFloat(document.getElementById('exCustomMet').value)||5):parseFloat(actEl.value)||5;
+  const dur=parseInt(document.getElementById('exDur').value)||30;const wt=parseInt(document.getElementById('exWt').value)||70;
+  const burn=Math.round(met*wt*(dur/60));
+  const name=isCustom?(document.getElementById('exCustomName').value||'Custom activity'):actEl.options[actEl.selectedIndex].text.replace(/ \(.*\)/,'');
+  const typeMap={'10':'running','8':'running','6':'cycling','4.5':'cycling','3.5':'walking','3':'walking','5':'weight_training','9':'hiit','2.5':'yoga','3.0':'pilates','7':'rowing','10.0':'jump_rope','5.0':'elliptical','8.0':'swimming'};
+  const type=isCustom?'custom':(typeMap[actEl.value]||'custom');
+  getDay(curExDate).exercises.push({type,name,dur,wt,burn});
+  S.bodyWeight=wt;persistDay(curExDate);persistProfile();
+  renderAll();if(curExDate!==TODAY){refreshHistCard(curExDate);renderSidebar();}
+  closeExModal();toast('Exercise logged!','ok');
+}
+function delEx(idx,date){
+  getDay(date||TODAY).exercises.splice(idx,1);
+  persistDay(date||TODAY);if(!date||date===TODAY)renderExercise();
+  if(date&&date!==TODAY)refreshHistCard(date);renderSidebar();
+}
+
+// ══════════════════════════════════════════
+//  Steps
+// ══════════════════════════════════════════
+let curStepsDate=TODAY;
+function openStepsModal(date){
+  curStepsDate=date||TODAY;
+  document.getElementById('stepsIn').value=getDay(curStepsDate).steps||'';
+  document.getElementById('stepsGoalIn').value=S.stepsGoal||10000;
+  document.getElementById('stepsWtIn').value=S.bodyWeight||70;
+  document.getElementById('stepsOverlay').classList.add('open');
+}
+function closeStepsModal(){document.getElementById('stepsOverlay').classList.remove('open');}
+function saveSteps(){
+  getDay(curStepsDate).steps=parseInt(document.getElementById('stepsIn').value)||0;
+  S.stepsGoal=parseInt(document.getElementById('stepsGoalIn').value)||10000;
+  S.bodyWeight=parseInt(document.getElementById('stepsWtIn').value)||70;
+  persistDay(curStepsDate);persistProfile();
+  renderAll();if(curStepsDate!==TODAY){refreshHistCard(curStepsDate);renderSidebar();}
+  closeStepsModal();toast('Steps saved!','ok');
+}
+
+// ══════════════════════════════════════════
+//  Migration from nourish3 / nourish_v2
+// ══════════════════════════════════════════
+let legacySource=null;
+
+// ── Auto-detect from localStorage (same-origin only) ──
+function getLegacyData(){
+  for(const key of['nourish3','nourish_v2']){
+    try{const raw=localStorage.getItem(key);if(raw){const p=JSON.parse(raw);if(p&&p.days&&Object.keys(p.days).length>0)return{key,data:p};}}catch(e){}
+  }
+  return null;
+}
+function checkMigration(){
+  if(localStorage.getItem('nourish5_migrated'))return;
+  const legacy=getLegacyData();if(!legacy)return;
+  legacySource=legacy;
+  document.getElementById('migrateBanner').classList.add('show');
+}
+function dismissMigrate(){
+  document.getElementById('migrateBanner').classList.remove('show');
+  localStorage.setItem('nourish5_migrated','dismissed');
+}
+
+// ── JSON file import (cross-origin migration) ──
+function setupJsonDropZone(){
+  const zone=document.getElementById('jsonDropZone');
+  const inp=document.getElementById('jsonFileInput');
+  if(!zone||!inp)return;
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.style.borderColor='var(--accent)';zone.style.background='rgba(181,255,90,.04)';});
+  zone.addEventListener('dragleave',()=>{zone.style.borderColor='';zone.style.background='';});
+  zone.addEventListener('drop',e=>{
+    e.preventDefault();zone.style.borderColor='';zone.style.background='';
+    if(e.dataTransfer.files.length)loadJsonFile(e.dataTransfer.files[0]);
+  });
+  inp.addEventListener('change',e=>{if(e.target.files.length)loadJsonFile(e.target.files[0]);});
+}
+
+function loadJsonFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      if(!parsed||!parsed.days||Object.keys(parsed.days).length===0){
+        toast('No diary entries found in that file','err');return;
+      }
+      legacySource={key:'json-file',data:parsed};
+      openMigrateModal(file.name);
+    }catch(err){
+      toast('Could not read file — make sure it is valid JSON','err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Open migration modal ──
+function openMigrateModal(filename){
+  if(!legacySource)return;
+  const isFile=(filename||legacySource.key==='json-file');
+  document.getElementById('migrateModalTitle').textContent=isFile?('Import from '+(filename||'JSON file')):'Import from Previous Version';
+  document.getElementById('migrateModalDesc').textContent=isFile
+    ?'Review what will be imported from your exported file. New days are added; days with existing data are skipped.'
+    :'Review what will be imported from your previous version. New days are added; days with existing data are skipped.';
+  const legDays=legacySource.data.days||{};
+  const days=Object.keys(legDays).sort().reverse();
+  const preview=document.getElementById('migratePreview');
+  let newCount=0,skipCount=0,hasConflict=false;
+  if(!days.length){
+    preview.innerHTML='<div style="color:var(--muted);font-size:10px;text-align:center;padding:8px;">No diary days found in this data.</div>';
+    document.getElementById('migrateRunBtn').disabled=true;
+  } else {
+    preview.innerHTML=days.map(d=>{
+      const day=legDays[d];
+      const eaten=(day.foods||[]).reduce((s,f)=>s+(f.kcal||f.calories||0),0);
+      const foods=(day.foods||[]).length,ex=(day.exercises||[]).length,steps=day.steps||0;
+      const alreadyExists=S.days[d]&&(S.days[d].foods.length>0||S.days[d].exercises.length>0);
+      const dateStr=new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',month:'short',day:'numeric'});
+      if(alreadyExists){skipCount++;hasConflict=true;}else newCount++;
+      return '<div class="migrate-day-row">'
+        +'<div class="migrate-day-date">'+esc(dateStr)+'</div>'
+        +'<div class="migrate-day-stats">'
+        +'<div class="migrate-day-stat"><span>'+foods+'</span> foods</div>'
+        +'<div class="migrate-day-stat"><span>'+eaten+'</span> kcal</div>'
+        +'<div class="migrate-day-stat"><span>'+ex+'</span> ex</div>'
+        +'<div class="migrate-day-stat"><span>'+steps.toLocaleString()+'</span> steps</div>'
+        +(alreadyExists
+          ?'<span style="font-size:9px;color:var(--accent4);font-weight:600;">SKIP</span>'
+          :'<span style="font-size:9px;color:var(--accent);font-weight:600;">IMPORT</span>')
+        +'</div></div>';
+    }).join('');
+    document.getElementById('migrateConflictNote').style.display=hasConflict?'block':'none';
+    document.getElementById('migrateSummary').textContent=newCount+' day'+(newCount!==1?'s':'')+' will be imported'+(skipCount>0?', '+skipCount+' skipped':'');
+    document.getElementById('migrateRunBtn').disabled=newCount===0;
+  }
+  document.getElementById('migrateOverlay').classList.add('open');
+}
+
+function closeMigrateModal(){document.getElementById('migrateOverlay').classList.remove('open');}
+
+async function runMigration(){
+  if(!legacySource)return;
+  const legDays=legacySource.data.days||{};
+  let imported=0;
+  const savePromises=[];
+  Object.entries(legDays).forEach(([d,day])=>{
+    if(S.days[d]&&(S.days[d].foods.length>0||S.days[d].exercises.length>0))return;
+    const foods=(day.foods||[]).map(f=>({meal:f.meal||'Snacks',name:f.name||'Unknown',amount:f.amount||'1 serving',kcal:f.kcal||f.calories||0,p:f.p||f.protein||0,c:f.c||f.carbs||0,f:f.f||f.fat||0}));
+    const exercises=(day.exercises||[]).map(e=>({type:e.type||'custom',name:e.name||'Exercise',dur:e.dur||e.duration||30,wt:e.wt||e.weight||70,burn:e.burn||0}));
+    S.days[d]={foods,exercises,steps:day.steps||0};
+    savePromises.push(persistDay(d));
+    imported++;
+  });
+  if(S.goal===2000&&legacySource.data.goal&&legacySource.data.goal!==2000){S.goal=legacySource.data.goal;document.getElementById('goalInput').value=S.goal;}
+  if(!S.bodyWeight&&legacySource.data.bodyWeight)S.bodyWeight=legacySource.data.bodyWeight;
+  if(!S.stepsGoal&&legacySource.data.stepsGoal)S.stepsGoal=legacySource.data.stepsGoal;
+  await Promise.allSettled(savePromises);
+  persistProfile();
+  if(legacySource.key!=='json-file')localStorage.setItem('nourish5_migrated','done');
+  closeMigrateModal();
+  document.getElementById('migrateBanner').classList.remove('show');
+  legacySource=null;
+  const inp=document.getElementById('jsonFileInput');if(inp)inp.value='';
+  renderAll();
+  toast('Imported '+imported+' day'+(imported!==1?'s':'')+' — syncing to cloud…','ok');
+}
+
+// ══════════════════════════════════════════
+//  User menu
+// ══════════════════════════════════════════
+function showUserMenu(){
+  if(currentUser){
+    const av=document.getElementById('menuAvatar');
+    if(currentUser.photoURL){av.src=currentUser.photoURL;av.style.display='block';}
+    document.getElementById('menuName').textContent=currentUser.displayName||'User';
+    document.getElementById('menuEmail').textContent=currentUser.email||'';
+    document.getElementById('menuSyncStatus').textContent=
+      syncStatus==='synced'?'✓ All data synced to Firestore':
+      syncStatus==='syncing'?'⏳ Syncing…':
+      syncStatus==='error'?'⚠ Sync error — check connection':'';
+  } else {
+    document.getElementById('menuName').textContent='Local Mode';
+    document.getElementById('menuEmail').textContent='Data saved locally only';
+    document.getElementById('menuAvatar').style.display='none';
+    document.getElementById('menuSyncStatus').textContent='Firebase not configured';
+  }
+  document.getElementById('userMenuOverlay').classList.add('open');
+}
+function closeUserMenu(){document.getElementById('userMenuOverlay').classList.remove('open');}
+
+// ══════════════════════════════════════════
+//  Drop zone & file input wiring
+// ══════════════════════════════════════════
+document.getElementById('dropZone').addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dropZone').classList.add('drag-over');});
+document.getElementById('dropZone').addEventListener('dragleave',()=>document.getElementById('dropZone').classList.remove('drag-over'));
+document.getElementById('dropZone').addEventListener('drop',e=>{e.preventDefault();document.getElementById('dropZone').classList.remove('drag-over');importFiles(e.dataTransfer.files);});
+document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files.length)importFiles(e.target.files);});
+
+// Close overlays on bg click
+document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+
+// ══════════════════════════════════════════
+//  Boot
+// ══════════════════════════════════════════
+(async function boot(){
+  await openDB();
+  const fbCfg=loadFbConfig();
+  const skipped=localStorage.getItem('nourish_fb_skipped');
+
+  if(fbCfg){
+    // Has saved config — try to init Firebase silently
+    initFirebase(fbCfg);
+  } else if(skipped){
+    // Chose local-only mode
+    showScreen('usda');
+    initUsdaSetup();
+  } else {
+    // First run — show Firebase setup
+    showScreen('fb');
+  }
+})();
+</script>
+</body>
+</html>
