@@ -575,16 +575,16 @@ select.inp option{background:var(--surface2);}
 
   <!-- ── Mobile bottom nav ── -->
   <nav id="mobileNav">
-    <button class="mob-nav-btn active" id="mobTabToday" onclick="showPage('today',this);setMobTab(this)">
+    <button class="mob-nav-btn active" id="mobTabToday" onclick="showPage('today',this)">
       <span class="mob-nav-icon">🍽</span>Today
     </button>
     <button class="mob-nav-btn" id="mobTabStats" onclick="openDrawer()">
       <span class="mob-nav-icon">📊</span>Stats
     </button>
-    <button class="mob-nav-btn" id="mobTabExercise" onclick="showPage('exercise',this);setMobTab(this)">
+    <button class="mob-nav-btn" id="mobTabExercise" onclick="showPage('exercise',this)">
       <span class="mob-nav-icon">💪</span>Exercise
     </button>
-    <button class="mob-nav-btn" id="mobTabHistory" onclick="showPage('history',this);setMobTab(this)">
+    <button class="mob-nav-btn" id="mobTabHistory" onclick="showPage('history',this)">
       <span class="mob-nav-icon">📅</span>History
     </button>
     <button class="mob-nav-btn" id="mobTabAccount" onclick="showUserMenu()">
@@ -1333,19 +1333,51 @@ function renderSidebar(){
   const exBurn=d.exercises.reduce((s,e)=>s+e.burn,0);
   const stepBurn=Math.round((d.steps||0)*0.04*(S.bodyWeight||70)/70);
   const goal=S.goal,circ=295;
-  document.getElementById('ringCal').textContent=eaten;
-  document.getElementById('ringFill').style.strokeDashoffset=circ-circ*Math.min(eaten/goal,1);
-  document.getElementById('goalSpan').textContent=goal;
-  const rem=goal-eaten;const remEl=document.getElementById('remainSpan');
-  remEl.textContent=rem>=0?rem+' left':Math.abs(rem)+' over';remEl.style.color=rem>=0?'var(--accent)':'var(--accent3)';
-  document.getElementById('mp').textContent=Math.round(prot)+'g';
-  document.getElementById('mc').textContent=Math.round(carbs)+'g';
-  document.getElementById('mf').textContent=Math.round(fat)+'g';
-  document.getElementById('netEaten').textContent=eaten;
-  document.getElementById('netEx').textContent='−'+exBurn;
-  document.getElementById('netSteps').textContent='−'+stepBurn;
-  const net=eaten-exBurn-stepBurn;const netEl=document.getElementById('netTotal');
-  netEl.textContent=net;netEl.className='net-big '+(net>goal?'over':'ok');
+  const net=eaten-exBurn-stepBurn;
+  const rem=goal-eaten;
+
+  // Helper: set text/style on an element if it exists (handles both sidebar + drawer IDs)
+  function setEl(id,fn){const el=document.getElementById(id);if(el)fn(el);}
+
+  // Write to both sidebar IDs and drawer IDs (drawer uses same IDs since sidebar is hidden on mobile)
+  setEl('ringCal',el=>el.textContent=eaten);
+  setEl('ringFill',el=>el.style.strokeDashoffset=circ-circ*Math.min(eaten/goal,1));
+  setEl('goalSpan',el=>el.textContent=goal);
+  setEl('remainSpan',el=>{
+    el.textContent=rem>=0?rem+' left':Math.abs(rem)+' over';
+    el.style.color=rem>=0?'var(--accent)':'var(--accent3)';
+  });
+  setEl('mp',el=>el.textContent=Math.round(prot)+'g');
+  setEl('mc',el=>el.textContent=Math.round(carbs)+'g');
+  setEl('mf',el=>el.textContent=Math.round(fat)+'g');
+  setEl('netEaten',el=>el.textContent=eaten);
+  setEl('netEx',el=>el.textContent='−'+exBurn);
+  setEl('netSteps',el=>el.textContent='−'+stepBurn);
+  setEl('netTotal',el=>{el.textContent=net;el.className='net-big '+(net>goal?'over':'ok');});
+
+  // Also update drawer if open
+  updateDrawerStats(eaten,prot,carbs,fat,exBurn,stepBurn,net,rem,goal,circ);
+}
+
+function updateDrawerStats(eaten,prot,carbs,fat,exBurn,stepBurn,net,rem,goal,circ){
+  const dc=document.getElementById('drawerContent');
+  if(!dc||!dc.children.length)return;
+  // Update values inside drawer by querying within it
+  function dSet(id,fn){const el=dc.querySelector('#'+id);if(el)fn(el);}
+  dSet('ringCal',el=>el.textContent=eaten);
+  dSet('ringFill',el=>el.style.strokeDashoffset=(295-295*Math.min(eaten/goal,1)));
+  dSet('goalSpan',el=>el.textContent=goal);
+  dSet('remainSpan',el=>{
+    el.textContent=rem>=0?rem+' left':Math.abs(rem)+' over';
+    el.style.color=rem>=0?'var(--accent)':'var(--accent3)';
+  });
+  dSet('mp',el=>el.textContent=Math.round(prot)+'g');
+  dSet('mc',el=>el.textContent=Math.round(carbs)+'g');
+  dSet('mf',el=>el.textContent=Math.round(fat)+'g');
+  dSet('netEaten',el=>el.textContent=eaten);
+  dSet('netEx',el=>el.textContent='−'+exBurn);
+  dSet('netSteps',el=>el.textContent='−'+stepBurn);
+  dSet('netTotal',el=>{el.textContent=net;el.className='net-big '+(net>goal?'over':'ok');});
 }
 
 function renderMeals(date){
@@ -1517,7 +1549,15 @@ function persistProfile(){
 function showPage(p,btn){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
-  document.getElementById('page-'+p).classList.add('active');btn.classList.add('active');
+  document.querySelectorAll('.mob-nav-btn').forEach(el=>el.classList.remove('active'));
+  const pageEl=document.getElementById('page-'+p);
+  if(pageEl)pageEl.classList.add('active');
+  // btn may be a desktop .nav-tab or mobile .mob-nav-btn or null
+  if(btn)btn.classList.add('active');
+  // also highlight the matching mobile nav btn by page name
+  const mobMap={today:'mobTabToday',exercise:'mobTabExercise',history:'mobTabHistory'};
+  const mobBtn=document.getElementById(mobMap[p]);
+  if(mobBtn)mobBtn.classList.add('active');
   if(p==='history')renderHistory();
 }
 
@@ -1997,48 +2037,38 @@ function closeDrawer(){
   document.body.style.overflow='';
 }
 function syncDrawerContent(){
-  // Clone sidebar cards into the drawer
   const sidebar=document.querySelector('.sidebar');
   const dest=document.getElementById('drawerContent');
   if(!sidebar||!dest)return;
-  dest.innerHTML=sidebar.innerHTML;
-  // Re-wire the goal input inside the drawer
-  const drawerGoal=dest.querySelector('#goalInput');
-  if(drawerGoal){
-    drawerGoal.id='drawerGoalInput';
-    drawerGoal.addEventListener('input',e=>{
-      S.goal=parseInt(e.target.value)||2000;
-      // sync back to main sidebar input
-      const mainGoal=document.getElementById('goalInput');
-      if(mainGoal)mainGoal.value=S.goal;
-      if(syncEnabled&&currentUser)saveProfile();else saveLocal();
-      renderSidebar();
-    });
+  // Only clone if drawer is empty (first open)
+  if(!dest.children.length){
+    dest.innerHTML=sidebar.innerHTML;
+    // Re-wire the goal input inside the drawer so it doesn't conflict with sidebar ID
+    const drawerGoal=dest.querySelector('#goalInput');
+    if(drawerGoal){
+      drawerGoal.removeAttribute('id'); // remove duplicate ID
+      drawerGoal.addEventListener('input',e=>{
+        S.goal=parseInt(e.target.value)||2000;
+        const mainGoal=document.getElementById('goalInput');
+        if(mainGoal)mainGoal.value=S.goal;
+        if(syncEnabled&&currentUser)saveProfile();else saveLocal();
+        renderSidebar();
+      });
+    }
   }
+  // Always push current values into drawer
+  const d=getDay();
+  const eaten=d.foods.reduce((s,f)=>s+f.kcal,0);
+  const prot=d.foods.reduce((s,f)=>s+(f.p||0),0);
+  const carbs=d.foods.reduce((s,f)=>s+(f.c||0),0);
+  const fat=d.foods.reduce((s,f)=>s+(f.f||0),0);
+  const exBurn=d.exercises.reduce((s,e)=>s+e.burn,0);
+  const stepBurn=Math.round((d.steps||0)*0.04*(S.bodyWeight||70)/70);
+  const goal=S.goal,net=eaten-exBurn-stepBurn,rem=goal-eaten;
+  updateDrawerStats(eaten,prot,carbs,fat,exBurn,stepBurn,net,rem,goal,295);
 }
-function setMobTab(btn){
-  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-}
-// Override showPage to also update mobile nav tab
-const _origShowPage=showPage;
-function showPage(p,btn){
-  _origShowPage(p,btn);
-  // sync mobile nav highlight
-  const map={today:'mobTabToday',exercise:'mobTabExercise',history:'mobTabHistory'};
-  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
-  const mobBtn=document.getElementById(map[p]);
-  if(mobBtn)mobBtn.classList.add('active');
-}
-// Re-sync drawer after every renderSidebar
-const _origRenderSidebar=renderSidebar;
-function renderSidebar(){
-  _origRenderSidebar();
-  // If drawer is open, refresh its content
-  if(document.getElementById('sidebarDrawer').classList.contains('open')){
-    syncDrawerContent();
-  }
-}
+function setMobTab(btn){/* handled inside showPage */}
+// mobile nav + drawer handled inside showPage and renderSidebar directly
 
 // ══════════════════════════════════════════
 //  Boot
