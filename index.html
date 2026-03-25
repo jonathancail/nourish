@@ -530,13 +530,18 @@ select.inp option{background:var(--surface2);}
     <div class="modal-title" id="foodModalTitle">Add Food</div>
     <div class="tab-bar">
       <button class="tab-btn" id="tabRecent" onclick="switchFoodTab('recent',this)">⏱ Recent</button>
-      <button class="tab-btn active" id="tabSearch" onclick="switchFoodTab('search',this)">Search DB</button>
+      <button class="tab-btn" id="tabFav" onclick="switchFoodTab('fav',this)">⭐ Favs</button>
+      <button class="tab-btn active" id="tabSearch" onclick="switchFoodTab('search',this)">Search</button>
       <button class="tab-btn" id="tabManual" onclick="switchFoodTab('manual',this)">Manual</button>
       <button class="tab-btn" id="tabRecipe" onclick="switchFoodTab('recipe',this)">Recipe</button>
     </div>
     <div class="pane" id="fp-recent">
       <div class="recent-grid" id="recentGrid"></div>
       <div class="recent-hint">Tap <strong style="color:var(--accent)">+</strong> to instantly re-log, or click a food to edit it first.</div>
+    </div>
+    <div class="pane" id="fp-fav">
+      <div class="recent-grid" id="favGrid"></div>
+      <div class="recent-hint">Star ⭐ any food from search results to save it here. Syncs across devices.</div>
     </div>
     <div class="pane active" id="fp-search">
       <div class="fg"><label class="lbl">Search food name</label>
@@ -591,6 +596,12 @@ select.inp option{background:var(--surface2);}
 <div class="overlay" id="exOverlay">
   <div class="modal">
     <div class="modal-title">Log Exercise</div>
+    <!-- Recent exercises quick-pick -->
+    <div id="recentExSection" style="display:none;margin-bottom:14px;">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px;">Recent exercises</div>
+      <div id="recentExGrid" style="display:flex;flex-direction:column;gap:4px;max-height:130px;overflow-y:auto;"></div>
+      <div style="height:1px;background:var(--border);margin:12px 0;"></div>
+    </div>
     <div class="fg"><label class="lbl">Activity</label>
       <select class="inp" id="exAct" onchange="onExActChange()">
         <option value="10">Running — fast (10 MET)</option><option value="8">Running — moderate (8 MET)</option>
@@ -645,17 +656,26 @@ select.inp option{background:var(--surface2);}
 
 <!-- ══ USER MENU ══ -->
 <div class="overlay" id="userMenuOverlay">
-  <div class="modal" style="width:320px;">
-    <div class="modal-title">Account</div>
-    <div style="text-align:center;padding:10px 0 18px;">
-      <img id="menuAvatar" src="" alt="" style="width:52px;height:52px;border-radius:50%;margin-bottom:8px;display:block;margin:0 auto 8px;"/>
-      <div id="menuName" style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:2px;"></div>
+  <div class="modal" style="width:340px;">
+    <div class="modal-title">Account &amp; Settings</div>
+    <div style="text-align:center;padding:6px 0 14px;">
+      <img id="menuAvatar" src="" alt="" style="width:48px;height:48px;border-radius:50%;display:block;margin:0 auto 7px;"/>
+      <div id="menuName" style="font-family:var(--font-display);font-size:15px;font-weight:700;margin-bottom:2px;"></div>
       <div id="menuEmail" style="font-size:11px;color:var(--muted);"></div>
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-bottom:14px;text-align:center;" id="menuSyncStatus"></div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <button class="btn-ghost" style="width:100%;font-size:11px;" onclick="goToUsdaSetup();closeUserMenu()">📦 Manage Food Database</button>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:12px;text-align:center;" id="menuSyncStatus"></div>
+    <!-- Public URL setting -->
+    <div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <label class="lbl" style="margin-bottom:6px;">Public URL (GitHub Pages / Netlify)</label>
+      <div style="display:flex;gap:7px;">
+        <input type="text" id="publicUrlInput" class="inp" placeholder="https://yourname.github.io/nourish/" style="font-size:11px;flex:1;"/>
+        <button onclick="savePublicUrl()" style="background:var(--accent);color:#0c0c0f;border:none;border-radius:7px;padding:0 12px;font-size:10px;font-weight:700;font-family:var(--font-mono);cursor:pointer;white-space:nowrap;">Save</button>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin-top:5px;">Used to generate correct setup links for other devices.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;">
       <button class="btn-ghost" style="width:100%;font-size:11px;" onclick="copySetupLink();closeUserMenu()">🔗 Copy Setup Link (for new devices)</button>
+      <button class="btn-ghost" style="width:100%;font-size:11px;" onclick="goToUsdaSetup();closeUserMenu()">📦 Manage Food Database</button>
       <button class="btn-ghost" style="width:100%;font-size:11px;" onclick="goToFbSetup();closeUserMenu()">⚙ Change Firebase Config</button>
       <button class="btn-danger" style="width:100%;font-size:11px;" onclick="signOut()">Sign Out</button>
     </div>
@@ -750,7 +770,8 @@ function saveFbConfig(){
 
 function showSetupLink(cfg){
   const encoded=btoa(JSON.stringify(cfg));
-  const base=window.location.origin+window.location.pathname;
+  const publicUrl=(S&&S.publicUrl)||'';
+  const base=(publicUrl||window.location.origin+window.location.pathname).replace(/\/+$/,'')+'/';
   const link=base+'#config='+encoded;
   const wrap=document.getElementById('setupLinkWrap');
   const inp=document.getElementById('setupLinkInput');
@@ -761,7 +782,8 @@ function copySetupLink(){
   const cfg=loadFbConfig();
   if(!cfg){toast('No Firebase config saved yet','err');return;}
   const encoded=btoa(JSON.stringify(cfg));
-  const base=window.location.origin+window.location.pathname;
+  const publicUrl=S.publicUrl||(window.location.origin+window.location.pathname);
+  const base=publicUrl.replace(/\/+$/,'')+'/';
   const link=base+'#config='+encoded;
   navigator.clipboard.writeText(link).then(()=>{
     toast('Setup link copied! Open it on any device.','ok');
@@ -999,6 +1021,9 @@ async function loadProfile(){
       const d=snap.data();
       S.goal=d.goal||2000;S.stepsGoal=d.stepsGoal||10000;
       S.bodyWeight=d.bodyWeight||70;S.recentFoods=d.recentFoods||[];
+      S.favourites=d.favourites||[];
+      S.recentExercises=d.recentExercises||[];
+      S.publicUrl=d.publicUrl||'';
     }
   }catch(e){console.warn('loadProfile:',e);}
 }
@@ -1009,7 +1034,10 @@ async function saveProfile(){
   try{
     await profileRef().set({
       goal:S.goal,stepsGoal:S.stepsGoal,
-      bodyWeight:S.bodyWeight,recentFoods:S.recentFoods||[]
+      bodyWeight:S.bodyWeight,recentFoods:S.recentFoods||[],
+      favourites:S.favourites||[],
+      recentExercises:S.recentExercises||[],
+      publicUrl:S.publicUrl||''
     },{merge:true});
     setSyncDot('synced');
   }catch(e){setSyncDot('error');console.warn('saveProfile:',e);}
@@ -1331,8 +1359,10 @@ function openFoodModal(meal,date){
   document.getElementById('ingrList').innerHTML='';
   document.getElementById('rTotal').textContent='0';
   const hasRecent=S.recentFoods&&S.recentFoods.length>0;
-  const defaultTab=hasRecent?'recent':'search';
-  switchFoodTab(defaultTab,document.getElementById(hasRecent?'tabRecent':'tabSearch'));
+  const hasFavs=S.favourites&&S.favourites.length>0;
+  const defaultTab=hasRecent?'recent':hasFavs?'fav':'search';
+  const defaultBtnId=hasRecent?'tabRecent':hasFavs?'tabFav':'tabSearch';
+  switchFoodTab(defaultTab,document.getElementById(defaultBtnId));
   document.getElementById('foodOverlay').classList.add('open');
 }
 function closeFoodModal(){document.getElementById('foodOverlay').classList.remove('open');}
@@ -1343,6 +1373,42 @@ function switchFoodTab(tab,btn){
   document.querySelectorAll('#foodOverlay .pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('fp-'+tab).classList.add('active');
   if(tab==='recent')renderRecentGrid();
+  if(tab==='fav')renderFavGrid();
+}
+function renderFavGrid(){
+  const grid=document.getElementById('favGrid');
+  const favs=S.favourites||[];
+  if(!favs.length){grid.innerHTML='<div class="recent-empty">No favourites yet — star ⭐ foods from search results.</div>';return;}
+  grid.innerHTML=favs.map((f,i)=>
+    '<div class="recent-item" onclick="pickFavFood('+i+')">'
+    +'<div style="font-size:14px;flex-shrink:0;">⭐</div>'
+    +'<div style="flex:1;min-width:0;">'
+    +'<div class="recent-name">'+esc(f.desc)+'</div>'
+    +'<div class="recent-sub">Per 100g · '+Math.round(f.kcal||0)+' kcal</div>'
+    +'</div>'
+    +'<button class="recent-add" title="Quick-add 100g" onclick="event.stopPropagation();quickAddFav('+i+')">+</button>'
+    +'<button onclick="event.stopPropagation();removeFav('+i+')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 3px;">×</button>'
+    +'</div>'
+  ).join('');
+}
+function pickFavFood(i){
+  const f=(S.favourites||[])[i];if(!f)return;
+  selFood={id:f.id,desc:f.desc,kcal:f.kcal,p:f.p||0,c:f.c||0,f:f.f||0};
+  document.getElementById('fsInput').value=f.desc;
+  switchFoodTab('search',document.getElementById('tabSearch'));
+  updatePreview();
+}
+function quickAddFav(i){
+  const f=(S.favourites||[])[i];if(!f)return;
+  const entry={meal:curMeal,name:f.desc,amount:'100g',kcal:Math.round(f.kcal),p:Math.round(f.p||0),c:Math.round(f.c||0),f:Math.round(f.f||0)};
+  getDay(curFoodDate).foods.push(entry);
+  addToRecent(entry);persistDay(curFoodDate);persistProfile();
+  renderAll();if(curFoodDate!==TODAY){refreshHistCard(curFoodDate);renderSidebar();}
+  closeFoodModal();toast(esc(f.desc)+' logged!','ok');
+}
+function removeFav(i){
+  if(!S.favourites)return;
+  S.favourites.splice(i,1);persistProfile();renderFavGrid();toast('Removed from favourites','info');
 }
 function renderRecentGrid(){
   const grid=document.getElementById('recentGrid');
@@ -1372,6 +1438,9 @@ function customiseRecent(idx){
   switchFoodTab('manual',document.getElementById('tabManual'));
 }
 let searchTimer=null;
+// Search result cache — avoids JSON-in-onclick quoting issues
+let _searchResultCache = [];
+
 function debouncedSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(doSearch,280);}
 async function doSearch(){
   const q=document.getElementById('fsInput').value.trim();
@@ -1380,12 +1449,40 @@ async function doSearch(){
   if(!idb||await countFoods()===0){el.innerHTML='<div class="sr-none">No local database — use Manual tab or import first</div>';el.style.display='block';return;}
   el.innerHTML='<div class="sr-none">Searching…</div>';el.style.display='block';
   const results=await searchFoods(q,14);
+  _searchResultCache=results;
   if(!results.length){el.innerHTML='<div class="sr-none">No results — try Manual entry</div>';return;}
-  el.innerHTML=results.map(r=>`
-    <div class="sr-item" onclick='pickFood(${JSON.stringify({id:r.id,desc:r.desc,kcal:r.kcal||r.energy||0,p:r.protein||0,c:r.carbs||0,f:r.fat||0})})'>
-      <div class="sr-name">${esc(r.desc)}</div>
-      <div class="sr-meta">Per 100g: ${Math.round(r.kcal||0)} kcal · P:${Math.round(r.protein||0)}g · C:${Math.round(r.carbs||0)}g · F:${Math.round(r.fat||0)}g</div>
-    </div>`).join('');
+  const favIds=new Set((S.favourites||[]).map(f=>f.id));
+  el.innerHTML=results.map((r,i)=>{
+    const isFav=favIds.has(r.id);
+    return '<div class="sr-item" style="display:flex;align-items:center;gap:8px;" onclick="pickFoodByIdx('+i+')">'
+      +'<div style="flex:1;">'
+      +'<div class="sr-name">'+esc(r.desc)+'</div>'
+      +'<div class="sr-meta">Per 100g: '+Math.round(r.kcal||0)+' kcal · P:'+Math.round(r.protein||0)+'g · C:'+Math.round(r.carbs||0)+'g · F:'+Math.round(r.fat||0)+'g</div>'
+      +'</div>'
+      +'<button onclick="event.stopPropagation();toggleFav('+i+')" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 4px;opacity:'+(isFav?'1':'0.3')+';transition:opacity .15s;" title="'+(isFav?'Remove from':'Add to')+' favourites">'+(isFav?'⭐':'☆')+'</button>'
+      +'</div>';
+  }).join('');
+}
+function pickFoodByIdx(i){
+  const r=_searchResultCache[i];if(!r)return;
+  selFood={id:r.id,desc:r.desc,kcal:r.kcal||r.energy||0,p:r.protein||0,c:r.carbs||0,f:r.fat||0};
+  document.getElementById('fsInput').value=r.desc;
+  document.getElementById('fsResults').style.display='none';
+  updatePreview();
+}
+function toggleFav(i){
+  const r=_searchResultCache[i];if(!r)return;
+  if(!S.favourites)S.favourites=[];
+  const existing=S.favourites.findIndex(f=>f.id===r.id);
+  if(existing>=0){
+    S.favourites.splice(existing,1);toast('Removed from favourites','info');
+  } else {
+    S.favourites.push({id:r.id,desc:r.desc,kcal:r.kcal||r.energy||0,p:r.protein||0,c:r.carbs||0,f:r.fat||0});
+    toast('Added to favourites ⭐','ok');
+  }
+  persistProfile();
+  // Refresh star in results
+  doSearch();
 }
 function pickFood(food){selFood=food;document.getElementById('fsInput').value=food.desc;document.getElementById('fsResults').style.display='none';updatePreview();}
 function updatePreview(){
@@ -1449,7 +1546,47 @@ function delFood(meal,idx,date){
 //  Exercise
 // ══════════════════════════════════════════
 let curExDate=TODAY;
-function openExModal(date){curExDate=date||TODAY;document.getElementById('exWt').value=S.bodyWeight||70;document.getElementById('exOverlay').classList.add('open');calcBurn();}
+function openExModal(date){
+  curExDate=date||TODAY;
+  document.getElementById('exWt').value=S.bodyWeight||70;
+  renderRecentExercises();
+  document.getElementById('exOverlay').classList.add('open');
+  calcBurn();
+}
+function renderRecentExercises(){
+  const recents=S.recentExercises||[];
+  const section=document.getElementById('recentExSection');
+  const grid=document.getElementById('recentExGrid');
+  if(!recents.length){section.style.display='none';return;}
+  section.style.display='block';
+  grid.innerHTML=recents.map((e,i)=>
+    '<div class="recent-item" onclick="quickLogRecentEx('+i+')" style="justify-content:space-between;">'
+    +'<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'
+    +'<div style="font-size:16px;">'+( EX_ICONS[e.type]||'💪')+'</div>'
+    +'<div style="min-width:0;">'
+    +'<div class="recent-name">'+esc(e.name)+'</div>'
+    +'<div class="recent-sub">'+e.dur+' min · '+Math.round(e.met*( S.bodyWeight||70)*(e.dur/60))+' kcal est.</div>'
+    +'</div></div>'
+    +'<button class="recent-add" title="Log again" onclick="event.stopPropagation();quickLogRecentEx('+i+')">+</button>'
+    +'</div>'
+  ).join('');
+}
+function quickLogRecentEx(i){
+  const e=(S.recentExercises||[])[i];if(!e)return;
+  const wt=S.bodyWeight||70;
+  const burn=Math.round(e.met*wt*(e.dur/60));
+  getDay(curExDate).exercises.push({type:e.type,name:e.name,dur:e.dur,wt,burn});
+  persistDay(curExDate);persistProfile();renderAll();
+  if(curExDate!==TODAY){refreshHistCard(curExDate);renderSidebar();}
+  document.getElementById('exOverlay').classList.remove('open');
+  toast(esc(e.name)+' logged!','ok');
+}
+function addToRecentExercises(ex){
+  if(!S.recentExercises)S.recentExercises=[];
+  S.recentExercises=S.recentExercises.filter(e=>!(e.name===ex.name&&e.type===ex.type));
+  S.recentExercises.unshift(ex);
+  if(S.recentExercises.length>10)S.recentExercises=S.recentExercises.slice(0,10);
+}
 function closeExModal(){document.getElementById('exOverlay').classList.remove('open');}
 function onExActChange(){const c=document.getElementById('exAct').value==='custom';document.getElementById('customNameFg').style.display=c?'block':'none';document.getElementById('customMetFg').style.display=c?'block':'none';calcBurn();}
 document.getElementById('exAct').addEventListener('change',onExActChange);
@@ -1468,7 +1605,9 @@ function logExercise(){
   const typeMap={'10':'running','8':'running','6':'cycling','4.5':'cycling','3.5':'walking','3':'walking','5':'weight_training','9':'hiit','2.5':'yoga','3.0':'pilates','7':'rowing','10.0':'jump_rope','5.0':'elliptical','8.0':'swimming'};
   const type=isCustom?'custom':(typeMap[actEl.value]||'custom');
   getDay(curExDate).exercises.push({type,name,dur,wt,burn});
-  S.bodyWeight=wt;persistDay(curExDate);persistProfile();
+  S.bodyWeight=wt;
+  addToRecentExercises({type,name,dur,met});
+  persistDay(curExDate);persistProfile();
   renderAll();if(curExDate!==TODAY){refreshHistCard(curExDate);renderSidebar();}
   closeExModal();toast('Exercise logged!','ok');
 }
@@ -1643,7 +1782,13 @@ function showUserMenu(){
     document.getElementById('menuAvatar').style.display='none';
     document.getElementById('menuSyncStatus').textContent='Firebase not configured';
   }
+  const puInp=document.getElementById('publicUrlInput');
+  if(puInp)puInp.value=S.publicUrl||'';
   document.getElementById('userMenuOverlay').classList.add('open');
+}
+function savePublicUrl(){
+  const v=(document.getElementById('publicUrlInput').value||'').trim().replace(/\/+$/,'');
+  S.publicUrl=v;persistProfile();toast('Public URL saved','ok');
 }
 function closeUserMenu(){document.getElementById('userMenuOverlay').classList.remove('open');}
 
