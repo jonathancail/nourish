@@ -276,6 +276,155 @@ select.inp option{background:var(--surface2);}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+
+/* ══════════════════════════════════════════
+   MOBILE RESPONSIVE  (≤ 768px)
+══════════════════════════════════════════ */
+@media (max-width:768px){
+
+  /* ── Setup / auth screens ── */
+  .setup-card{padding:24px 20px;}
+  .setup-logo{font-size:22px;}
+
+  /* ── Header ── */
+  header{
+    padding:10px 14px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .logo{font-size:17px;}
+  .header-center{order:3;width:100%;align-items:flex-start;}
+  .header-date{font-size:10px;}
+  .header-sub{font-size:9px;}
+  .header-right{gap:6px;}
+  /* Hide desktop nav tabs — replaced by bottom nav */
+  .nav-tabs{display:none !important;}
+  /* Shrink user button */
+  .user-btn{padding:4px 8px;font-size:10px;}
+
+  /* ── Bottom nav bar ── */
+  #mobileNav{
+    display:flex;
+    position:fixed;bottom:0;left:0;right:0;
+    background:rgba(12,12,15,.96);
+    border-top:1px solid var(--border);
+    backdrop-filter:blur(12px);
+    z-index:150;
+    height:58px;
+  }
+  .mob-nav-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:none;background:none;color:var(--muted);cursor:pointer;gap:3px;
+    font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;
+    transition:color .15s;padding:0;
+  }
+  .mob-nav-btn.active{color:var(--accent);}
+  .mob-nav-btn .mob-nav-icon{font-size:20px;line-height:1;}
+
+  /* ── App body — no sidebar ── */
+  .app-body{flex-direction:column;}
+  .sidebar{display:none;}/* hidden by default, shown as drawer */
+  .main{
+    padding:14px 14px 72px; /* bottom pad for nav bar */
+    overflow-y:auto;
+  }
+
+  /* ── Drawer overlay ── */
+  #drawerOverlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+    backdrop-filter:blur(4px);z-index:160;
+  }
+  #drawerOverlay.open{display:block;}
+  #sidebarDrawer{
+    position:fixed;left:0;top:0;bottom:0;
+    width:min(300px,88vw);
+    background:var(--surface);border-right:1px solid var(--border);
+    padding:20px 16px 80px;overflow-y:auto;
+    z-index:161;
+    transform:translateX(-100%);
+    transition:transform .25s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;gap:12px;
+  }
+  #sidebarDrawer.open{transform:translateX(0);}
+  .drawer-close{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:6px;
+  }
+  .drawer-close-btn{
+    background:none;border:none;color:var(--muted);cursor:pointer;
+    font-size:20px;line-height:1;padding:2px;
+  }
+
+  /* ── Full-screen modals ── */
+  .overlay{
+    align-items:flex-end;
+    padding:0;
+  }
+  .modal{
+    width:100% !important;
+    max-width:100% !important;
+    max-height:92vh;
+    border-radius:18px 18px 0 0;
+    padding:20px 16px 32px;
+    animation:mobileModalIn .25s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes mobileModalIn{
+    from{transform:translateY(100%);}
+    to{transform:translateY(0);}
+  }
+
+  /* ── Larger tap targets ── */
+  .btn-add{padding:10px 16px;font-size:11px;}
+  .btn-ghost{padding:10px 14px;font-size:11px;}
+  .btn-primary{padding:12px 20px;font-size:12px;}
+  .btn-cancel{padding:12px 20px;font-size:12px;}
+  .btn-danger{padding:10px 14px;font-size:11px;}
+  .nav-tab{padding:10px 16px;font-size:12px;}
+  .del-btn{font-size:18px;padding:4px 6px;}
+  .recent-add{padding:4px 9px;font-size:15px;}
+  .tab-btn{padding:9px 6px;font-size:11px;}
+
+  /* ── Food/exercise items ── */
+  .food-item{padding:12px 14px;}
+  .food-name{font-size:13px;}
+  .food-meta{font-size:10px;}
+  .food-kcal{font-size:15px;}
+  .ex-item{padding:12px 14px;}
+  .ex-name{font-size:13px;}
+  .ex-meta{font-size:10px;}
+  .ex-burn{font-size:15px;}
+
+  /* ── Inputs ── */
+  .inp{padding:11px 12px;font-size:13px;}
+  .lbl{font-size:10px;}
+  .fg{margin-bottom:14px;}
+
+  /* ── Section headers ── */
+  .section-title{font-size:16px;}
+  .meal-label{font-size:11px;}
+  .empty-slot{padding:20px;font-size:11px;}
+
+  /* ── History cards ── */
+  .hist-day-hdr{padding:14px;}
+  .hist-date{font-size:14px;}
+  .hist-stat-val{font-size:14px;}
+
+  /* ── Steps card ── */
+  .steps-big{font-size:40px;}
+
+  /* ── Toast — above nav bar ── */
+  .toast{bottom:70px;right:12px;left:12px;max-width:none;text-align:center;}
+
+  /* ── Sync banner ── */
+  .sync-banner{font-size:12px;padding:9px 14px;}
+}
+
+/* Desktop — hide mobile-only elements */
+@media (min-width:769px){
+  #mobileNav{display:none !important;}
+  #drawerOverlay{display:none !important;}
+  #sidebarDrawer{display:none !important;}
+}
 </style>
 </head>
 <body>
@@ -423,6 +572,36 @@ select.inp option{background:var(--surface2);}
       </div>
     </div>
   </header>
+
+  <!-- ── Mobile bottom nav ── -->
+  <nav id="mobileNav">
+    <button class="mob-nav-btn active" id="mobTabToday" onclick="showPage('today',this);setMobTab(this)">
+      <span class="mob-nav-icon">🍽</span>Today
+    </button>
+    <button class="mob-nav-btn" id="mobTabStats" onclick="openDrawer()">
+      <span class="mob-nav-icon">📊</span>Stats
+    </button>
+    <button class="mob-nav-btn" id="mobTabExercise" onclick="showPage('exercise',this);setMobTab(this)">
+      <span class="mob-nav-icon">💪</span>Exercise
+    </button>
+    <button class="mob-nav-btn" id="mobTabHistory" onclick="showPage('history',this);setMobTab(this)">
+      <span class="mob-nav-icon">📅</span>History
+    </button>
+    <button class="mob-nav-btn" id="mobTabAccount" onclick="showUserMenu()">
+      <span class="mob-nav-icon">👤</span>Account
+    </button>
+  </nav>
+
+  <!-- ── Sidebar drawer (mobile only) ── -->
+  <div id="drawerOverlay" onclick="closeDrawer()"></div>
+  <div id="sidebarDrawer">
+    <div class="drawer-close">
+      <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent);">Stats</div>
+      <button class="drawer-close-btn" onclick="closeDrawer()">×</button>
+    </div>
+    <!-- Sidebar content is cloned here by JS -->
+    <div id="drawerContent"></div>
+  </div>
 
   <div class="app-body">
     <aside class="sidebar">
@@ -1802,6 +1981,64 @@ document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.f
 
 // Close overlays on bg click
 document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+
+// ══════════════════════════════════════════
+//  Mobile drawer & nav
+// ══════════════════════════════════════════
+function openDrawer(){
+  syncDrawerContent();
+  document.getElementById('sidebarDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeDrawer(){
+  document.getElementById('sidebarDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function syncDrawerContent(){
+  // Clone sidebar cards into the drawer
+  const sidebar=document.querySelector('.sidebar');
+  const dest=document.getElementById('drawerContent');
+  if(!sidebar||!dest)return;
+  dest.innerHTML=sidebar.innerHTML;
+  // Re-wire the goal input inside the drawer
+  const drawerGoal=dest.querySelector('#goalInput');
+  if(drawerGoal){
+    drawerGoal.id='drawerGoalInput';
+    drawerGoal.addEventListener('input',e=>{
+      S.goal=parseInt(e.target.value)||2000;
+      // sync back to main sidebar input
+      const mainGoal=document.getElementById('goalInput');
+      if(mainGoal)mainGoal.value=S.goal;
+      if(syncEnabled&&currentUser)saveProfile();else saveLocal();
+      renderSidebar();
+    });
+  }
+}
+function setMobTab(btn){
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+// Override showPage to also update mobile nav tab
+const _origShowPage=showPage;
+function showPage(p,btn){
+  _origShowPage(p,btn);
+  // sync mobile nav highlight
+  const map={today:'mobTabToday',exercise:'mobTabExercise',history:'mobTabHistory'};
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  const mobBtn=document.getElementById(map[p]);
+  if(mobBtn)mobBtn.classList.add('active');
+}
+// Re-sync drawer after every renderSidebar
+const _origRenderSidebar=renderSidebar;
+function renderSidebar(){
+  _origRenderSidebar();
+  // If drawer is open, refresh its content
+  if(document.getElementById('sidebarDrawer').classList.contains('open')){
+    syncDrawerContent();
+  }
+}
 
 // ══════════════════════════════════════════
 //  Boot
